@@ -1,0 +1,165 @@
+import type { DraftState, Team } from '../types/draft'
+
+export interface SetupData {
+  tournamentName?: string
+  teamAName: string
+  teamBName: string
+  teamAPlayers: string[]
+  teamBPlayers: string[]
+  firstPick: Team
+}
+
+/**
+ * Setup画面の入力データから初期DraftStateを生成
+ */
+export function createInitialDraftState(data: SetupData): DraftState {
+  const now = new Date().toISOString()
+
+  return {
+    tournamentName: data.tournamentName,
+    teams: {
+      A: {
+        name: data.teamAName,
+        players: data.teamAPlayers,
+      },
+      B: {
+        name: data.teamBName,
+        players: data.teamBPlayers,
+      },
+    },
+    currentMatch: 1,
+    currentTurn: 0,
+    firstPickByMatch: {
+      1: data.firstPick,
+      2: data.firstPick === 'A' ? 'B' : 'A',
+      3: data.firstPick,
+    },
+    picks: {
+      match1: { A: [], B: [] },
+      match2: { A: [], B: [] },
+      match3: { A: [], B: [] },
+    },
+    updatedAt: now,
+  }
+}
+
+/**
+ * テスト用のモックDraftStateを生成
+ * UI実装時の表示確認用
+ * デフォルトは第1試合、空の状態から開始
+ */
+export function createMockDraftState(): DraftState {
+  const now = new Date().toISOString()
+
+  return {
+    tournamentName: '第1回サンプルトーナメント',
+    teams: {
+      A: {
+        name: 'チームアルファ',
+        players: ['Player1', 'Player2', 'Player3', 'Player4', 'Player5'],
+      },
+      B: {
+        name: 'チームベータ',
+        players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
+      },
+    },
+    currentMatch: 1,
+    currentTurn: 0,
+    firstPickByMatch: {
+      1: 'A',
+      2: 'B',
+      3: 'A',
+    },
+    picks: {
+      match1: { A: [], B: [] },
+      match2: { A: [], B: [] },
+      match3: { A: [], B: [] },
+    },
+    updatedAt: now,
+  }
+}
+
+/**
+ * テスト用：第2試合のモックDraftState
+ * BAN判定確認用（match1のピックがBANされる）
+ */
+export function createMockDraftStateMatch2(): DraftState {
+  const now = new Date().toISOString()
+
+  return {
+    tournamentName: '第1回サンプルトーナメント',
+    teams: {
+      A: {
+        name: 'チームアルファ',
+        players: ['Player1', 'Player2', 'Player3', 'Player4', 'Player5'],
+      },
+      B: {
+        name: 'チームベータ',
+        players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
+      },
+    },
+    currentMatch: 2,
+    currentTurn: 2,
+    firstPickByMatch: {
+      1: 'A',
+      2: 'B',
+      3: 'A',
+    },
+    picks: {
+      match1: {
+        A: ['pikachu', 'charizard', 'lucario'],
+        B: ['snorlax', 'greninja', 'cinderace'],
+      },
+      match2: {
+        A: ['garchomp'],
+        B: ['sylveon'],
+      },
+      match3: { A: [], B: [] },
+    },
+    updatedAt: now,
+  }
+}
+
+/**
+ * テスト用：第3試合のモックDraftState
+ * BAN判定確認用（match1とmatch2のピックがBANされる）
+ */
+export function createMockDraftStateMatch3(): DraftState {
+  const now = new Date().toISOString()
+
+  return {
+    tournamentName: '第1回サンプルトーナメント',
+    teams: {
+      A: {
+        name: 'チームアルファ',
+        players: ['Player1', 'Player2', 'Player3', 'Player4', 'Player5'],
+      },
+      B: {
+        name: 'チームベータ',
+        players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
+      },
+    },
+    currentMatch: 3,
+    currentTurn: 1,
+    firstPickByMatch: {
+      1: 'A',
+      2: 'B',
+      3: 'A',
+    },
+    picks: {
+      match1: {
+        A: ['pikachu', 'charizard', 'lucario'],
+        B: ['snorlax', 'greninja', 'cinderace'],
+      },
+      match2: {
+        A: ['garchomp', 'sylveon', 'machamp'],
+        B: ['venusaur', 'blastoise', 'gengar'],
+      },
+      match3: {
+        A: ['gardevoir'],
+        B: [],
+      },
+    },
+    updatedAt: now,
+  }
+}
