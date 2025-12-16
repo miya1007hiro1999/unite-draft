@@ -251,7 +251,11 @@ export async function loadDraftStateById(
       return null
     }
 
+    // ✅ 成功時に localStorage に保存（リロード時の復元を確実にする）
+    localStorage.setItem(CURRENT_DRAFT_ID_KEY, draftId)
     console.log('[loadDraftStateById] ✅ Successfully loaded draft')
+    console.log('[loadDraftStateById] Saved draft ID to localStorage:', draftId)
+
     return data.state as DraftState
   } catch (error) {
     console.error('[loadDraftStateById] Error loading draft state:', error)
