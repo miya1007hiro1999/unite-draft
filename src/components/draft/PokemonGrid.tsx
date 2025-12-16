@@ -54,6 +54,7 @@ export default function PokemonGrid({
         )}
       </h2>
       <div
+        className="pokemon-grid-container"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',

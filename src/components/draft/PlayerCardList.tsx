@@ -21,6 +21,7 @@ export default function PlayerCardList({
 }: PlayerCardListProps) {
   return (
     <div
+      className="player-card-list"
       style={{
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         padding: 'clamp(0.75rem, 2vw, 1.5rem)',
@@ -51,6 +52,7 @@ export default function PlayerCardList({
 
       {/* プレイヤーカード一覧 */}
       <div
+        className="player-cards-container"
         style={{
           display: 'flex',
           flexDirection: 'column',

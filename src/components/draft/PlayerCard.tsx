@@ -16,6 +16,7 @@ export default function PlayerCard({
 }: PlayerCardProps) {
   return (
     <div
+      className="player-card"
       style={{
         background: isCurrentPicker
           ? `linear-gradient(135deg, ${teamColor}20 0%, ${teamColor}10 100%)`
@@ -86,6 +87,7 @@ export default function PlayerCard({
               <img
                 src={getPokemonImage(pokemon.id)}
                 alt={pokemon.name}
+                className="player-card-pokemon-img"
                 style={{
                   width: 'clamp(70px, 8vw, 90px)',
                   height: 'clamp(70px, 8vw, 90px)',

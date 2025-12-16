@@ -664,14 +664,13 @@ export default function DraftPage() {
           }
         }
 
-        /* スマホ: 小画面（768px未満） - 1カラム */
+        /* スマホ: 小画面（768px未満） - Pokemon grid on top, teams side-by-side */
         @media (max-width: 767px) {
           .draft-grid-layout {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             grid-template-areas:
-              "center"
-              "teamA"
-              "teamB";
+              "center center"
+              "teamA teamB";
           }
         }
 
