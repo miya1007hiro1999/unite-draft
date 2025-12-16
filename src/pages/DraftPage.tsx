@@ -222,13 +222,25 @@ export default function DraftPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#16213e',
+          background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
           color: 'white',
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>読み込み中...</div>
-          <div style={{ fontSize: '1rem', color: '#aaa' }}>
+          <div
+            style={{
+              fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
+              marginBottom: '1rem',
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            読み込み中...
+          </div>
+          <div style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#aaa' }}>
             DraftStateを取得しています
           </div>
         </div>
@@ -248,50 +260,115 @@ export default function DraftPage() {
   const draftComplete = isDraftComplete(state)
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
+      }}
+    >
       {/* ヘッダー */}
       <header
         style={{
-          backgroundColor: '#1a1a2e',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
           color: 'white',
-          padding: '1rem 2rem',
-          borderBottom: '2px solid #0f3460',
+          padding: 'clamp(1rem, 2vw, 1.5rem) clamp(1rem, 3vw, 2rem)',
+          borderBottom: '2px solid #2a2a3e',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.5rem' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 'clamp(1.2rem, 3vw, 1.8rem)',
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '0.05em',
+              }}
+            >
               {state.tournamentName || 'ドラフト'}
               {isReadOnly && (
-                <span style={{
-                  marginLeft: '1rem',
-                  fontSize: '0.9rem',
-                  color: '#fbbf24',
-                  backgroundColor: '#78350f',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '4px',
-                  fontWeight: 'normal'
-                }}>
+                <span
+                  style={{
+                    marginLeft: 'clamp(0.5rem, 1vw, 1rem)',
+                    fontSize: 'clamp(0.7rem, 1.5vw, 0.9rem)',
+                    color: '#fbbf24',
+                    backgroundColor: '#78350f',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    border: '1px solid #fbbf2440',
+                    boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)',
+                  }}
+                >
                   👁️ 観戦モード
                 </span>
               )}
             </h1>
-            <div style={{ fontSize: '0.9rem', marginTop: '0.5rem', opacity: 0.8 }}>
+            <div
+              style={{
+                fontSize: 'clamp(0.8rem, 1.8vw, 0.95rem)',
+                marginTop: 'clamp(0.3rem, 1vw, 0.5rem)',
+                color: '#aaa',
+                fontWeight: '500',
+              }}
+            >
               試合 {state.currentMatch} / 3 | ターン {state.currentTurn}
             </div>
           </div>
 
           {/* 運営・観戦URL表示（admin モードのみ） */}
           {!isReadOnly && draftId && (
-            <div style={{ fontSize: '0.75rem', textAlign: 'right' }}>
-              <div style={{ marginBottom: '0.25rem', color: '#4ade80' }}>
-                🔗 運営URL: <code style={{ backgroundColor: '#0f3460', padding: '0.25rem 0.5rem', borderRadius: '3px' }}>
-                  {window.location.origin}/draft/{draftId}/admin
+            <div
+              style={{
+                fontSize: 'clamp(0.65rem, 1.2vw, 0.75rem)',
+                textAlign: 'right',
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+                padding: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+                borderRadius: '8px',
+                border: '1px solid #2a2a3e',
+              }}
+            >
+              <div style={{ marginBottom: '0.5rem', color: '#4ade80' }}>
+                🔗 運営URL:{' '}
+                <code
+                  style={{
+                    backgroundColor: '#0a0a0a',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.85em',
+                    border: '1px solid #2a2a3e',
+                  }}
+                >
+                  /draft/{draftId}/admin
                 </code>
               </div>
               <div style={{ color: '#fbbf24' }}>
-                👁️ 観戦URL: <code style={{ backgroundColor: '#0f3460', padding: '0.25rem 0.5rem', borderRadius: '3px' }}>
-                  {window.location.origin}/draft/{draftId}/view
+                👁️ 観戦URL:{' '}
+                <code
+                  style={{
+                    backgroundColor: '#0a0a0a',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.85em',
+                    border: '1px solid #2a2a3e',
+                  }}
+                >
+                  /draft/{draftId}/view
                 </code>
               </div>
             </div>
@@ -300,7 +377,7 @@ export default function DraftPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main style={{ flex: 1, padding: 'clamp(1rem, 3vw, 2rem)', backgroundColor: '#16213e' }}>
+      <main style={{ flex: 1, padding: 'clamp(1rem, 3vw, 2rem)' }}>
         <div className="draft-grid-layout">
           {/* チームA */}
           <div style={{ gridArea: 'teamA' }}>
@@ -318,14 +395,14 @@ export default function DraftPage() {
           <div
             style={{
               gridArea: 'center',
-              backgroundColor: '#1a1a2e',
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
               padding: 'clamp(1rem, 2vw, 1.5rem)',
-              borderRadius: '12px',
-              border: '2px solid #0f3460',
+              borderRadius: 'clamp(12px, 2vw, 16px)',
+              border: '2px solid #2a2a3e',
               display: 'flex',
               flexDirection: 'column',
               gap: 'clamp(1rem, 2vw, 1.5rem)',
-              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
             }}
           >
             <PokemonGrid
@@ -339,28 +416,53 @@ export default function DraftPage() {
             {pendingPick && !isReadOnly && !matchComplete && (
               <div
                 style={{
-                  backgroundColor: '#0f3460',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  border: '2px solid #fbbf24',
+                  background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                  padding: 'clamp(1rem, 2vw, 1.5rem)',
+                  borderRadius: '12px',
+                  border: '2px solid #fbbf2460',
+                  boxShadow: '0 8px 24px rgba(251, 191, 36, 0.3)',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ color: '#fbbf24', marginBottom: '1rem', fontSize: '1rem' }}>
+                <div
+                  style={{
+                    color: '#fbbf24',
+                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                    fontWeight: 'bold',
+                  }}
+                >
                   仮ピック: <strong>{pendingPick}</strong>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 'clamp(0.75rem, 2vw, 1rem)',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
                   <button
                     onClick={handleConfirmPick}
                     style={{
-                      backgroundColor: '#4ade80',
-                      color: '#1a1a2e',
+                      background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                      color: 'white',
                       border: 'none',
-                      padding: '0.75rem 2rem',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
+                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                      borderRadius: '10px',
+                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
                     }}
                   >
                     ✓ 確定
@@ -368,14 +470,24 @@ export default function DraftPage() {
                   <button
                     onClick={handleCancelPick}
                     style={{
-                      backgroundColor: '#ef4444',
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                       color: 'white',
                       border: 'none',
-                      padding: '0.75rem 2rem',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
+                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                      borderRadius: '10px',
+                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.6)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
                     }}
                   >
                     ✕ キャンセル
@@ -388,10 +500,11 @@ export default function DraftPage() {
             {matchComplete && !isReadOnly && (
               <div
                 style={{
-                  backgroundColor: '#0f3460',
-                  padding: '1.5rem',
-                  borderRadius: '8px',
-                  border: '2px solid #4ade80',
+                  background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                  padding: 'clamp(1.25rem, 3vw, 1.5rem)',
+                  borderRadius: '12px',
+                  border: '2px solid #4ade8060',
+                  boxShadow: '0 8px 24px rgba(74, 222, 128, 0.3)',
                   textAlign: 'center',
                 }}
               >
@@ -400,14 +513,24 @@ export default function DraftPage() {
                   <div>
                     <h2
                       style={{
-                        color: '#4ade80',
-                        margin: '0 0 1rem 0',
-                        fontSize: '1.5rem',
+                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
+                        fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
+                        fontWeight: 'bold',
                       }}
                     >
                       ドラフト完了
                     </h2>
-                    <p style={{ color: '#aaa', margin: '0 0 1.5rem 0', fontSize: '1rem' }}>
+                    <p
+                      style={{
+                        color: '#aaa',
+                        margin: '0 0 clamp(1rem, 2vw, 1.5rem) 0',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      }}
+                    >
                       全3試合のドラフトが完了しました
                     </p>
                     {draftId && (
@@ -415,13 +538,23 @@ export default function DraftPage() {
                         to={`/draft/${draftId}/summary`}
                         style={{
                           display: 'inline-block',
-                          backgroundColor: '#4ade80',
-                          color: '#1a1a2e',
+                          background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+                          color: 'white',
                           textDecoration: 'none',
-                          padding: '0.75rem 2rem',
-                          borderRadius: '8px',
-                          fontSize: '1rem',
+                          padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                          borderRadius: '10px',
+                          fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                           fontWeight: 'bold',
+                          boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                          transition: 'all 0.3s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
                         }}
                       >
                         サマリーを見る
@@ -433,9 +566,13 @@ export default function DraftPage() {
                   <div>
                     <h3
                       style={{
-                        color: '#4ade80',
-                        margin: '0 0 1rem 0',
-                        fontSize: '1.2rem',
+                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
+                        fontSize: 'clamp(1.1rem, 2.5vw, 1.2rem)',
+                        fontWeight: 'bold',
                       }}
                     >
                       試合 {state.currentMatch} 終了
@@ -443,23 +580,24 @@ export default function DraftPage() {
                     <button
                       onClick={handleGoToNextMatch}
                       style={{
-                        backgroundColor: '#4ade80',
-                        color: '#1a1a2e',
+                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        color: 'white',
                         border: 'none',
-                        padding: '0.75rem 2rem',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
+                        padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                        borderRadius: '10px',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         fontWeight: 'bold',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                        transition: 'all 0.3s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#22c55e'
-                        e.currentTarget.style.transform = 'scale(1.05)'
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#4ade80'
-                        e.currentTarget.style.transform = 'scale(1)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
                       }}
                     >
                       次の試合へ進む（試合 {state.currentMatch + 1}）
@@ -487,12 +625,13 @@ export default function DraftPage() {
       {/* フッター */}
       <footer
         style={{
-          backgroundColor: '#1a1a2e',
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
           color: '#aaa',
-          padding: '1rem 2rem',
-          borderTop: '2px solid #0f3460',
+          padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
+          borderTop: '2px solid #2a2a3e',
           textAlign: 'center',
-          fontSize: '0.85rem',
+          fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
+          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.3)',
         }}
       >
         最終更新: {new Date(state.updatedAt).toLocaleString('ja-JP')}
