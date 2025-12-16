@@ -641,8 +641,8 @@ export default function DraftPage() {
       <style>{`
         .draft-grid-layout {
           display: grid;
-          gap: clamp(1rem, 2vw, 2rem);
-          max-width: 1600px;
+          gap: clamp(1rem, 2vw, 1.5rem);
+          max-width: 1400px;
           margin: 0 auto;
         }
 

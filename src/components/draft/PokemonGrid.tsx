@@ -57,10 +57,10 @@ export default function PokemonGrid({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+          gap: 'clamp(0.4rem, 1vw, 0.6rem)',
           maxHeight: 'clamp(60vh, 70vh, 75vh)',
           overflowY: 'auto',
-          padding: 'clamp(0.3rem, 1vw, 0.5rem)',
+          padding: 'clamp(0.3rem, 0.8vw, 0.4rem)',
           background: 'linear-gradient(135deg, #0f141910 0%, #1a1a2e10 100%)',
           borderRadius: 'clamp(8px, 1vw, 12px)',
           border: '1px solid #2a2a3e40',

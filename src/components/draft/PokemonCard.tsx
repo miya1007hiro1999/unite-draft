@@ -34,13 +34,13 @@ export default function PokemonCard({
         background: isBanned
           ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'
           : 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
-        borderRadius: '12px',
-        padding: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+        borderRadius: '10px',
+        padding: 'clamp(0.4rem, 1vw, 0.6rem)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(0.3rem, 1vw, 0.5rem)',
-        border: `3px solid ${borderColor}`,
+        gap: 'clamp(0.25rem, 0.8vw, 0.4rem)',
+        border: `2px solid ${borderColor}`,
         boxShadow: isPickedInCurrentMatch
           ? '0 0 20px rgba(251, 191, 36, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3)'
           : isBanned
@@ -95,8 +95,8 @@ export default function PokemonCard({
           src={getPokemonImage(pokemon.id)}
           alt={pokemon.name}
           style={{
-            width: 'clamp(60px, 8vw, 80px)',
-            height: 'clamp(60px, 8vw, 80px)',
+            width: 'clamp(50px, 6vw, 70px)',
+            height: 'clamp(50px, 6vw, 70px)',
             borderRadius: '8px',
             objectFit: 'cover',
             boxShadow: isPickedInCurrentMatch
