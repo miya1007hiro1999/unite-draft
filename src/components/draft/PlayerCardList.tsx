@@ -25,28 +25,28 @@ export default function PlayerCardList({
       className="player-card-list"
       style={{
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-        padding: 'clamp(0.4rem, 1vw, 0.75rem)',
-        borderRadius: 'clamp(8px, 1vw, 12px)',
-        border: isActive ? `3px solid ${teamColor}` : `2px solid ${teamColor}`,
+        padding: 'clamp(0.3rem, 0.7vw, 0.5rem)',
+        borderRadius: 'clamp(6px, 0.8vw, 10px)',
+        border: isActive ? `2px solid ${teamColor}` : `1.5px solid ${teamColor}`,
         boxShadow: isActive
-          ? `0 0 30px ${teamColor}60, 0 8px 32px rgba(0, 0, 0, 0.3)`
-          : '0 4px 16px rgba(0, 0, 0, 0.2)',
+          ? `0 0 20px ${teamColor}60, 0 4px 16px rgba(0, 0, 0, 0.3)`
+          : '0 2px 8px rgba(0, 0, 0, 0.2)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        minHeight: '140px',
+        minHeight: '100px',
       }}
     >
       {/* チーム名 */}
       <h2
         style={{
           color: teamColor,
-          margin: '0 0 clamp(0.35rem, 1vw, 0.6rem) 0',
-          fontSize: 'clamp(0.8rem, 1.8vw, 1rem)',
+          margin: '0 0 clamp(0.25rem, 0.7vw, 0.4rem) 0',
+          fontSize: 'clamp(0.65rem, 1.4vw, 0.8rem)',
           textAlign: 'center',
-          borderBottom: `2px solid ${teamColor}40`,
-          paddingBottom: 'clamp(0.3rem, 0.8vw, 0.4rem)',
+          borderBottom: `1.5px solid ${teamColor}40`,
+          paddingBottom: 'clamp(0.2rem, 0.5vw, 0.3rem)',
           fontWeight: 'bold',
           letterSpacing: '0.05em',
-          textShadow: `0 2px 12px ${teamColor}40`,
+          textShadow: `0 1px 8px ${teamColor}40`,
         }}
       >
         {teamName}
@@ -61,7 +61,7 @@ export default function PlayerCardList({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(0.3rem, 0.8vw, 0.5rem)',
+          gap: 'clamp(0.2rem, 0.5vw, 0.35rem)',
         }}
       >
         {players.map((playerName, index) => {

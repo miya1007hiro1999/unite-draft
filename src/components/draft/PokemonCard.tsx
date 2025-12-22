@@ -34,18 +34,18 @@ export default function PokemonCard({
         background: isBanned
           ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'
           : 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
-        borderRadius: '8px',
-        padding: 'clamp(0.3rem, 0.8vw, 0.5rem)',
+        borderRadius: '5px',
+        padding: 'clamp(0.2rem, 0.5vw, 0.35rem)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(0.2rem, 0.6vw, 0.3rem)',
-        border: `2px solid ${borderColor}`,
+        gap: 'clamp(0.15rem, 0.4vw, 0.2rem)',
+        border: `1.5px solid ${borderColor}`,
         boxShadow: isPickedInCurrentMatch
-          ? '0 0 20px rgba(251, 191, 36, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3)'
+          ? '0 0 15px rgba(251, 191, 36, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)'
           : isBanned
-          ? '0 2px 8px rgba(0, 0, 0, 0.5)'
-          : '0 4px 16px rgba(0, 0, 0, 0.3)',
+          ? '0 1px 4px rgba(0, 0, 0, 0.5)'
+          : '0 2px 8px rgba(0, 0, 0, 0.3)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         cursor: isBanned ? 'not-allowed' : isSelectable ? 'pointer' : 'default',
         opacity: isBanned ? 0.4 : 1,
@@ -56,9 +56,9 @@ export default function PokemonCard({
       }}
       onMouseEnter={(e) => {
         if (isSelectable) {
-          e.currentTarget.style.transform = 'scale(1.05) translateY(-4px)'
+          e.currentTarget.style.transform = 'scale(1.05) translateY(-3px)'
           e.currentTarget.style.borderColor = hoverBorderColor
-          e.currentTarget.style.boxShadow = `0 12px 24px rgba(74, 222, 128, 0.3), 0 0 0 1px ${hoverBorderColor}40 inset`
+          e.currentTarget.style.boxShadow = `0 8px 16px rgba(74, 222, 128, 0.3), 0 0 0 1px ${hoverBorderColor}40 inset`
         }
       }}
       onMouseLeave={(e) => {
@@ -66,8 +66,8 @@ export default function PokemonCard({
           e.currentTarget.style.transform = 'scale(1) translateY(0)'
           e.currentTarget.style.borderColor = borderColor
           e.currentTarget.style.boxShadow = isPickedInCurrentMatch
-            ? '0 0 20px rgba(251, 191, 36, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3)'
-            : '0 4px 16px rgba(0, 0, 0, 0.3)'
+            ? '0 0 15px rgba(251, 191, 36, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)'
+            : '0 2px 8px rgba(0, 0, 0, 0.3)'
         }
       }}
     >
@@ -84,7 +84,7 @@ export default function PokemonCard({
               ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, transparent 100%)'
               : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%)',
             pointerEvents: 'none',
-            borderRadius: '12px',
+            borderRadius: '8px',
           }}
         />
       )}
@@ -95,13 +95,13 @@ export default function PokemonCard({
           src={getPokemonImage(pokemon.id)}
           alt={pokemon.name}
           style={{
-            width: 'clamp(40px, 5vw, 55px)',
-            height: 'clamp(40px, 5vw, 55px)',
-            borderRadius: '6px',
+            width: 'clamp(28px, 3.5vw, 38px)',
+            height: 'clamp(28px, 3.5vw, 38px)',
+            borderRadius: '4px',
             objectFit: 'cover',
             boxShadow: isPickedInCurrentMatch
-              ? '0 4px 12px rgba(251, 191, 36, 0.4)'
-              : '0 2px 8px rgba(0, 0, 0, 0.3)',
+              ? '0 2px 8px rgba(251, 191, 36, 0.4)'
+              : '0 1px 4px rgba(0, 0, 0, 0.3)',
             transition: 'transform 0.3s ease',
           }}
         />
@@ -111,13 +111,13 @@ export default function PokemonCard({
       <div
         style={{
           color: isBanned ? '#666' : 'white',
-          fontSize: 'clamp(0.65rem, 1.3vw, 0.75rem)',
+          fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
           textAlign: 'center',
           fontWeight: isPickedInCurrentMatch ? 'bold' : '500',
           lineHeight: 1.2,
           textShadow: isPickedInCurrentMatch
-            ? '0 2px 8px rgba(251, 191, 36, 0.6)'
-            : '0 1px 4px rgba(0, 0, 0, 0.5)',
+            ? '0 1px 6px rgba(251, 191, 36, 0.6)'
+            : '0 1px 3px rgba(0, 0, 0, 0.5)',
           position: 'relative',
           zIndex: 1,
         }}
@@ -135,13 +135,13 @@ export default function PokemonCard({
             transform: 'translate(-50%, -50%) rotate(-15deg)',
             background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
             color: 'white',
-            padding: '0.25rem 0.75rem',
-            borderRadius: '6px',
-            fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
+            padding: '0.15rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: 'clamp(0.5rem, 1.1vw, 0.6rem)',
             fontWeight: 'bold',
             letterSpacing: '0.1em',
-            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.6)',
-            border: '2px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.6)',
+            border: '1.5px solid rgba(255, 255, 255, 0.2)',
           }}
         >
           BAN

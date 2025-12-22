@@ -18,16 +18,16 @@ export default function BanRow({ teamColor, banEntries }: BanRowProps) {
   return (
     <div
       style={{
-        marginBottom: 'clamp(0.3rem, 0.8vw, 0.5rem)',
+        marginBottom: 'clamp(0.2rem, 0.5vw, 0.3rem)',
       }}
     >
       {/* BAN ヘッダー */}
       <div
         style={{
-          fontSize: 'clamp(0.55rem, 1.1vw, 0.65rem)',
+          fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)',
           color: '#dc2626',
           fontWeight: 'bold',
-          marginBottom: 'clamp(0.15rem, 0.4vw, 0.25rem)',
+          marginBottom: 'clamp(0.1rem, 0.3vw, 0.15rem)',
           letterSpacing: '0.05em',
         }}
       >
@@ -38,7 +38,7 @@ export default function BanRow({ teamColor, banEntries }: BanRowProps) {
       <div
         style={{
           display: 'flex',
-          gap: 'clamp(0.2rem, 0.5vw, 0.3rem)',
+          gap: 'clamp(0.15rem, 0.4vw, 0.2rem)',
           justifyContent: 'flex-start',
         }}
       >

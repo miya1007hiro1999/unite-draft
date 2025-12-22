@@ -74,27 +74,27 @@ export default function PokemonGrid({
       <h2
         style={{
           color: titleColor,
-          margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
-          fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+          margin: '0 0 clamp(0.4rem, 1vw, 0.6rem) 0',
+          fontSize: 'clamp(0.75rem, 1.8vw, 0.9rem)',
           textAlign: 'center',
           fontWeight: 'bold',
           letterSpacing: '0.05em',
-          textShadow: `0 2px 8px ${titleColor}40`,
+          textShadow: `0 1px 6px ${titleColor}40`,
         }}
       >
         {title}
         {isReadOnly && (
           <span
             style={{
-              marginLeft: 'clamp(0.3rem, 1vw, 0.5rem)',
-              fontSize: 'clamp(0.65rem, 1.5vw, 0.8rem)',
+              marginLeft: 'clamp(0.2rem, 0.7vw, 0.35rem)',
+              fontSize: 'clamp(0.5rem, 1.1vw, 0.6rem)',
               color: '#fbbf24',
               backgroundColor: '#78350f',
-              padding: 'clamp(0.2rem, 0.5vw, 0.25rem) clamp(0.3rem, 1vw, 0.5rem)',
-              borderRadius: '4px',
+              padding: 'clamp(0.15rem, 0.4vw, 0.2rem) clamp(0.2rem, 0.7vw, 0.35rem)',
+              borderRadius: '3px',
               fontWeight: 'bold',
               border: '1px solid #fbbf2440',
-              boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)',
+              boxShadow: '0 1px 6px rgba(251, 191, 36, 0.3)',
             }}
           >
             読み取り専用
@@ -107,12 +107,12 @@ export default function PokemonGrid({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 'clamp(0.35rem, 0.8vw, 0.5rem)',
-          maxHeight: 'clamp(60vh, 70vh, 75vh)',
+          gap: 'clamp(0.25rem, 0.5vw, 0.35rem)',
+          maxHeight: 'clamp(55vh, 65vh, 70vh)',
           overflowY: 'auto',
-          padding: 'clamp(0.3rem, 0.8vw, 0.4rem)',
+          padding: 'clamp(0.25rem, 0.5vw, 0.35rem)',
           background: 'linear-gradient(135deg, #0f141910 0%, #1a1a2e10 100%)',
-          borderRadius: 'clamp(8px, 1vw, 12px)',
+          borderRadius: 'clamp(6px, 0.8vw, 10px)',
           border: '1px solid #2a2a3e40',
         }}
       >

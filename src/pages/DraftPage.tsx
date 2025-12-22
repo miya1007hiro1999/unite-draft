@@ -378,18 +378,20 @@ export default function DraftPage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
+        overflow: 'hidden',
       }}
     >
       {/* ヘッダー */}
       <header
         style={{
+          flexShrink: 0,
           background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
           color: 'white',
-          padding: 'clamp(1rem, 2vw, 1.5rem) clamp(1rem, 3vw, 2rem)',
+          padding: 'clamp(0.5rem, 1vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
           borderBottom: '2px solid #2a2a3e',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
         }}
@@ -407,7 +409,7 @@ export default function DraftPage() {
             <h1
               style={{
                 margin: 0,
-                fontSize: 'clamp(1.2rem, 3vw, 1.8rem)',
+                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                 fontWeight: 'bold',
                 background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
                 WebkitBackgroundClip: 'text',
@@ -420,12 +422,12 @@ export default function DraftPage() {
               {isReadOnly && (
                 <span
                   style={{
-                    marginLeft: 'clamp(0.5rem, 1vw, 1rem)',
-                    fontSize: 'clamp(0.7rem, 1.5vw, 0.9rem)',
+                    marginLeft: 'clamp(0.3rem, 0.8vw, 0.5rem)',
+                    fontSize: 'clamp(0.55rem, 1.2vw, 0.7rem)',
                     color: '#fbbf24',
                     backgroundColor: '#78350f',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '6px',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '4px',
                     fontWeight: 'bold',
                     border: '1px solid #fbbf2440',
                     boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)',
@@ -437,13 +439,13 @@ export default function DraftPage() {
             </h1>
             <div
               style={{
-                fontSize: 'clamp(0.8rem, 1.8vw, 0.95rem)',
-                marginTop: 'clamp(0.3rem, 1vw, 0.5rem)',
+                fontSize: 'clamp(0.6rem, 1.3vw, 0.75rem)',
+                marginTop: 'clamp(0.2rem, 0.6vw, 0.3rem)',
                 color: '#aaa',
                 fontWeight: '500',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'clamp(0.5rem, 1vw, 0.75rem)',
+                gap: 'clamp(0.3rem, 0.8vw, 0.5rem)',
                 flexWrap: 'wrap',
               }}
             >
@@ -455,9 +457,9 @@ export default function DraftPage() {
                       ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
                       : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                   color: 'white',
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: '6px',
-                  fontSize: 'clamp(0.7rem, 1.5vw, 0.85rem)',
+                  padding: '0.15rem 0.35rem',
+                  borderRadius: '4px',
+                  fontSize: 'clamp(0.55rem, 1.2vw, 0.65rem)',
                   fontWeight: 'bold',
                   boxShadow:
                     state.phase === 'ban'
@@ -471,7 +473,7 @@ export default function DraftPage() {
               <span
                 style={{
                   color: '#666',
-                  fontSize: 'clamp(0.65rem, 1.2vw, 0.75rem)',
+                  fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
                 }}
               >
                 (使用不可: {bannedPokemon.length}体)
@@ -483,21 +485,21 @@ export default function DraftPage() {
           {!isReadOnly && draftId && (
             <div
               style={{
-                fontSize: 'clamp(0.65rem, 1.2vw, 0.75rem)',
+                fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
                 textAlign: 'right',
                 background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
-                padding: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                borderRadius: '8px',
+                padding: 'clamp(0.3rem, 1vw, 0.5rem)',
+                borderRadius: '6px',
                 border: '1px solid #2a2a3e',
               }}
             >
-              <div style={{ marginBottom: '0.5rem', color: '#4ade80' }}>
+              <div style={{ marginBottom: '0.3rem', color: '#4ade80' }}>
                 🔗 運営URL:{' '}
                 <code
                   style={{
                     backgroundColor: '#0a0a0a',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
+                    padding: '0.15rem 0.3rem',
+                    borderRadius: '3px',
                     fontSize: '0.85em',
                     border: '1px solid #2a2a3e',
                   }}
@@ -510,8 +512,8 @@ export default function DraftPage() {
                 <code
                   style={{
                     backgroundColor: '#0a0a0a',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
+                    padding: '0.15rem 0.3rem',
+                    borderRadius: '3px',
                     fontSize: '0.85em',
                     border: '1px solid #2a2a3e',
                   }}
@@ -525,7 +527,14 @@ export default function DraftPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main style={{ flex: 1, padding: 'clamp(1rem, 3vw, 2rem)' }}>
+      <main
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          padding: 'clamp(0.5rem, 1.5vw, 1rem)',
+        }}
+      >
         <div className="draft-grid-layout">
           {/* チームA */}
           <div style={{ gridArea: 'teamA' }}>
@@ -568,12 +577,12 @@ export default function DraftPage() {
               <div
                 style={{
                   background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
-                  padding: 'clamp(1rem, 2vw, 1.5rem)',
-                  borderRadius: '12px',
-                  border: `2px solid ${
+                  padding: 'clamp(0.6rem, 1.5vw, 1rem)',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${
                     state.phase === 'ban' ? '#ef444460' : '#fbbf2460'
                   }`,
-                  boxShadow: `0 8px 24px ${
+                  boxShadow: `0 4px 16px ${
                     state.phase === 'ban'
                       ? 'rgba(239, 68, 68, 0.3)'
                       : 'rgba(251, 191, 36, 0.3)'
@@ -584,8 +593,8 @@ export default function DraftPage() {
                 <div
                   style={{
                     color: state.phase === 'ban' ? '#ef4444' : '#fbbf24',
-                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                    marginBottom: 'clamp(0.5rem, 1.3vw, 0.75rem)',
+                    fontSize: 'clamp(0.7rem, 1.5vw, 0.85rem)',
                     fontWeight: 'bold',
                   }}
                 >
@@ -601,7 +610,7 @@ export default function DraftPage() {
                 <div
                   style={{
                     display: 'flex',
-                    gap: 'clamp(0.75rem, 2vw, 1rem)',
+                    gap: 'clamp(0.5rem, 1.3vw, 0.75rem)',
                     justifyContent: 'center',
                     flexWrap: 'wrap',
                   }}
@@ -612,21 +621,21 @@ export default function DraftPage() {
                       background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
                       color: 'white',
                       border: 'none',
-                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
-                      borderRadius: '10px',
-                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
+                      borderRadius: '6px',
+                      fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                      boxShadow: '0 2px 12px rgba(74, 222, 128, 0.4)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
+                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(74, 222, 128, 0.6)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
+                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(74, 222, 128, 0.4)'
                     }}
                   >
                     ✓ 確定
@@ -637,21 +646,21 @@ export default function DraftPage() {
                       background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                       color: 'white',
                       border: 'none',
-                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
-                      borderRadius: '10px',
-                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
+                      borderRadius: '6px',
+                      fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)',
+                      boxShadow: '0 2px 12px rgba(239, 68, 68, 0.4)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.6)'
+                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.6)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.4)'
+                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(239, 68, 68, 0.4)'
                     }}
                   >
                     ✕ キャンセル
@@ -668,18 +677,18 @@ export default function DraftPage() {
                 <div
                   style={{
                     background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
-                    padding: 'clamp(1rem, 2vw, 1.5rem)',
-                    borderRadius: '12px',
-                    border: '2px solid #6b728040',
-                    boxShadow: '0 8px 24px rgba(107, 114, 128, 0.2)',
+                    padding: 'clamp(0.6rem, 1.5vw, 1rem)',
+                    borderRadius: '8px',
+                    border: '1.5px solid #6b728040',
+                    boxShadow: '0 4px 16px rgba(107, 114, 128, 0.2)',
                     textAlign: 'center',
                   }}
                 >
                   <div
                     style={{
                       color: '#9ca3af',
-                      marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                      fontSize: 'clamp(0.85rem, 1.8vw, 1rem)',
+                      marginBottom: 'clamp(0.5rem, 1.3vw, 0.75rem)',
+                      fontSize: 'clamp(0.65rem, 1.4vw, 0.75rem)',
                     }}
                   >
                     ポケモンを選択するか、このBAN枠をスキップできます
@@ -690,23 +699,23 @@ export default function DraftPage() {
                       background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
                       color: 'white',
                       border: 'none',
-                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
-                      borderRadius: '10px',
-                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
+                      borderRadius: '6px',
+                      fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 16px rgba(107, 114, 128, 0.4)',
+                      boxShadow: '0 2px 12px rgba(107, 114, 128, 0.4)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)'
                       e.currentTarget.style.boxShadow =
-                        '0 8px 24px rgba(107, 114, 128, 0.6)'
+                        '0 6px 18px rgba(107, 114, 128, 0.6)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
                       e.currentTarget.style.boxShadow =
-                        '0 4px 16px rgba(107, 114, 128, 0.4)'
+                        '0 2px 12px rgba(107, 114, 128, 0.4)'
                     }}
                   >
                     ⏭️ このBAN枠をスキップ
@@ -845,12 +854,13 @@ export default function DraftPage() {
       {/* フッター */}
       <footer
         style={{
+          flexShrink: 0,
           background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
           color: '#aaa',
-          padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
+          padding: 'clamp(0.3rem, 1vw, 0.5rem) clamp(0.5rem, 2vw, 1rem)',
           borderTop: '2px solid #2a2a3e',
           textAlign: 'center',
-          fontSize: 'clamp(0.75rem, 1.5vw, 0.85rem)',
+          fontSize: 'clamp(0.6rem, 1.2vw, 0.7rem)',
           boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.3)',
         }}
       >

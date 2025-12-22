@@ -13,17 +13,17 @@ export default function BanSlot({ entry, teamColor }: BanSlotProps) {
     return (
       <div
         style={{
-          width: '30px',
-          height: '30px',
-          borderRadius: '5px',
-          border: `2px dashed ${teamColor}40`,
+          width: '20px',
+          height: '20px',
+          borderRadius: '3px',
+          border: `1.5px dashed ${teamColor}40`,
           background: 'linear-gradient(135deg, #1a1a2e20 0%, #0f141920 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <div style={{ fontSize: '0.5rem', color: '#555' }}>?</div>
+        <div style={{ fontSize: '0.4rem', color: '#555' }}>?</div>
       </div>
     )
   }
@@ -33,9 +33,9 @@ export default function BanSlot({ entry, teamColor }: BanSlotProps) {
     return (
       <div
         style={{
-          width: '30px',
-          height: '30px',
-          borderRadius: '5px',
+          width: '20px',
+          height: '20px',
+          borderRadius: '3px',
           border: '1px solid #333', // 弱めのグレー枠線
           background: 'linear-gradient(135deg, #444 0%, #333 100%)', // 濃いグレー
           display: 'flex',
@@ -51,12 +51,12 @@ export default function BanSlot({ entry, teamColor }: BanSlotProps) {
             position: 'absolute',
             inset: 0,
             background:
-              'repeating-linear-gradient(45deg, transparent, transparent 2px, #ffffff15 2px, #ffffff15 4px)',
+              'repeating-linear-gradient(45deg, transparent, transparent 1.5px, #ffffff15 1.5px, #ffffff15 3px)',
           }}
         />
         <div
           style={{
-            fontSize: '0.45rem',
+            fontSize: '0.35rem',
             fontWeight: 'bold',
             color: '#888', // より明るいグレーで視認性向上
             position: 'relative',
@@ -75,13 +75,13 @@ export default function BanSlot({ entry, teamColor }: BanSlotProps) {
   return (
     <div
       style={{
-        width: '30px',
-        height: '30px',
-        borderRadius: '5px',
-        border: `1.5px solid ${teamColor}`,
+        width: '20px',
+        height: '20px',
+        borderRadius: '3px',
+        border: `1px solid ${teamColor}`,
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: `0 2px 6px ${teamColor}40`,
+        boxShadow: `0 1px 4px ${teamColor}40`,
       }}
     >
       {/* ポケモン画像 */}
@@ -105,10 +105,10 @@ export default function BanSlot({ entry, teamColor }: BanSlotProps) {
           right: 0,
           background: 'linear-gradient(to top, #dc2626ee 0%, #dc262600 100%)',
           color: 'white',
-          fontSize: '0.4rem',
+          fontSize: '0.3rem',
           fontWeight: 'bold',
           textAlign: 'center',
-          padding: '1px 0',
+          padding: '0.5px 0',
           letterSpacing: '0.05em',
         }}
       >

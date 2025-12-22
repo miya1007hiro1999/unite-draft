@@ -2,7 +2,7 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  font-size: 16px; /* 基準フォントサイズを明示的に設定 */
+  font-size: 12px; /* 大会スクリーン用に縮小（16px → 12px） */
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -27,6 +27,10 @@ a:hover {
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
   min-height: 100vh;
 }
 
