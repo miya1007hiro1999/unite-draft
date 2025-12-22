@@ -1,10 +1,9 @@
-import type { Team, BanEntry } from '../../types/draft'
+import type { BanEntry } from '../../types/draft'
 import PlayerCard from './PlayerCard'
 import BanRow from './BanRow'
 import { getPokemonById } from '../../data/pokemon'
 
 interface PlayerCardListProps {
-  team: Team
   teamName: string
   players: string[]
   pickedPokemonIds: string[]
@@ -14,7 +13,6 @@ interface PlayerCardListProps {
 }
 
 export default function PlayerCardList({
-  team,
   teamName,
   players,
   pickedPokemonIds,
@@ -55,7 +53,7 @@ export default function PlayerCardList({
       </h2>
 
       {/* BAN枠表示 */}
-      <BanRow team={team} teamColor={teamColor} banEntries={banEntries} />
+      <BanRow teamColor={teamColor} banEntries={banEntries} />
 
       {/* プレイヤーカード一覧 */}
       <div

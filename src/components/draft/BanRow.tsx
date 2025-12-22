@@ -1,13 +1,12 @@
 import BanSlot from './BanSlot'
-import type { BanEntry, Team } from '../../types/draft'
+import type { BanEntry } from '../../types/draft'
 
 interface BanRowProps {
-  team: Team
   teamColor: string
   banEntries: BanEntry[]
 }
 
-export default function BanRow({ team, teamColor, banEntries }: BanRowProps) {
+export default function BanRow({ teamColor, banEntries }: BanRowProps) {
   // 常に3枠表示（未確定枠はundefinedで表現）
   // IMPORTANT: nullはスキップ確定なので、そのまま保持する
   const slots: (BanEntry | undefined)[] = [

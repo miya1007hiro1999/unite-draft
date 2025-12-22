@@ -217,6 +217,9 @@ export default function DraftPage() {
       }
 
       // PICKフェーズ中の処理（重複チェック付き）
+      // PICKフェーズではnullは許可しない（型安全性のための早期リターン）
+      if (pendingPick === null) return prevState
+
       const newPicks = { ...prevState.picks }
       if (currentMatch === 1) {
         const currentPicks = newPicks.match1[pickingTeam]
@@ -499,7 +502,7 @@ export default function DraftPage() {
                     border: '1px solid #2a2a3e',
                   }}
                 >
-                  /draft/{draftId}/admin
+                  https://unite-draft-dun.vercel.app/draft/{draftId}/admin
                 </code>
               </div>
               <div style={{ color: '#fbbf24' }}>
@@ -513,7 +516,7 @@ export default function DraftPage() {
                     border: '1px solid #2a2a3e',
                   }}
                 >
-                  /draft/{draftId}/view
+                  https://unite-draft-dun.vercel.app/draft/{draftId}/view
                 </code>
               </div>
             </div>
@@ -528,7 +531,6 @@ export default function DraftPage() {
           <div style={{ gridArea: 'teamA' }}>
             <div style={{ width: '80%', margin: '0 auto' }}>
               <PlayerCardList
-                team="A"
                 teamName={state.teams.A.name}
                 players={state.teams.A.players}
                 pickedPokemonIds={getCurrentMatchPicks(state, 'A')}
@@ -828,7 +830,6 @@ export default function DraftPage() {
           <div style={{ gridArea: 'teamB' }}>
             <div style={{ width: '80%', margin: '0 auto' }}>
               <PlayerCardList
-                team="B"
                 teamName={state.teams.B.name}
                 players={state.teams.B.players}
                 pickedPokemonIds={getCurrentMatchPicks(state, 'B')}
