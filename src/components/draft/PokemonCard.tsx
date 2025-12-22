@@ -34,12 +34,12 @@ export default function PokemonCard({
         background: isBanned
           ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'
           : 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
-        borderRadius: '10px',
-        padding: 'clamp(0.4rem, 1vw, 0.6rem)',
+        borderRadius: '8px',
+        padding: 'clamp(0.3rem, 0.8vw, 0.5rem)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(0.25rem, 0.8vw, 0.4rem)',
+        gap: 'clamp(0.2rem, 0.6vw, 0.3rem)',
         border: `2px solid ${borderColor}`,
         boxShadow: isPickedInCurrentMatch
           ? '0 0 20px rgba(251, 191, 36, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3)'
@@ -95,9 +95,9 @@ export default function PokemonCard({
           src={getPokemonImage(pokemon.id)}
           alt={pokemon.name}
           style={{
-            width: 'clamp(50px, 6vw, 70px)',
-            height: 'clamp(50px, 6vw, 70px)',
-            borderRadius: '8px',
+            width: 'clamp(40px, 5vw, 55px)',
+            height: 'clamp(40px, 5vw, 55px)',
+            borderRadius: '6px',
             objectFit: 'cover',
             boxShadow: isPickedInCurrentMatch
               ? '0 4px 12px rgba(251, 191, 36, 0.4)'
@@ -111,7 +111,7 @@ export default function PokemonCard({
       <div
         style={{
           color: isBanned ? '#666' : 'white',
-          fontSize: 'clamp(0.7rem, 1.5vw, 0.85rem)',
+          fontSize: 'clamp(0.65rem, 1.3vw, 0.75rem)',
           textAlign: 'center',
           fontWeight: isPickedInCurrentMatch ? 'bold' : '500',
           lineHeight: 1.2,

@@ -29,12 +29,18 @@ export function createInitialDraftState(data: SetupData): DraftState {
     },
     currentMatch: 1,
     currentTurn: 0,
+    phase: 'ban', // BANフェーズから開始
     firstPickByMatch: {
       1: data.firstPick,
       2: data.firstPick === 'A' ? 'B' : 'A',
       3: data.firstPick,
     },
     picks: {
+      match1: { A: [], B: [] },
+      match2: { A: [], B: [] },
+      match3: { A: [], B: [] },
+    },
+    bans: {
       match1: { A: [], B: [] },
       match2: { A: [], B: [] },
       match3: { A: [], B: [] },
@@ -65,12 +71,18 @@ export function createMockDraftState(): DraftState {
     },
     currentMatch: 1,
     currentTurn: 0,
+    phase: 'ban', // BANフェーズから開始
     firstPickByMatch: {
       1: 'A',
       2: 'B',
       3: 'A',
     },
     picks: {
+      match1: { A: [], B: [] },
+      match2: { A: [], B: [] },
+      match3: { A: [], B: [] },
+    },
+    bans: {
       match1: { A: [], B: [] },
       match2: { A: [], B: [] },
       match3: { A: [], B: [] },
@@ -100,6 +112,7 @@ export function createMockDraftStateMatch2(): DraftState {
     },
     currentMatch: 2,
     currentTurn: 2,
+    phase: 'pick', // PICKフェーズ
     firstPickByMatch: {
       1: 'A',
       2: 'B',
@@ -113,6 +126,17 @@ export function createMockDraftStateMatch2(): DraftState {
       match2: {
         A: ['garchomp'],
         B: ['sylveon'],
+      },
+      match3: { A: [], B: [] },
+    },
+    bans: {
+      match1: {
+        A: ['gengar', 'absol', 'zeraora'],
+        B: ['blastoise', 'venusaur', 'slowbro'],
+      },
+      match2: {
+        A: ['talonflame'],
+        B: ['wigglytuff'],
       },
       match3: { A: [], B: [] },
     },
@@ -141,6 +165,7 @@ export function createMockDraftStateMatch3(): DraftState {
     },
     currentMatch: 3,
     currentTurn: 1,
+    phase: 'pick', // PICKフェーズ
     firstPickByMatch: {
       1: 'A',
       2: 'B',
@@ -157,6 +182,20 @@ export function createMockDraftStateMatch3(): DraftState {
       },
       match3: {
         A: ['gardevoir'],
+        B: [],
+      },
+    },
+    bans: {
+      match1: {
+        A: ['absol', 'zeraora', 'talonflame'],
+        B: ['slowbro', 'wigglytuff', 'crustle'],
+      },
+      match2: {
+        A: ['greedent', 'hoopa', 'tsareena'],
+        B: ['decidueye', 'dragonite', 'espeon'],
+      },
+      match3: {
+        A: ['blaziken'],
         B: [],
       },
     },

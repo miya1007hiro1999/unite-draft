@@ -1,5 +1,6 @@
-import type { Team } from '../../types/draft'
+import type { Team, BanEntry } from '../../types/draft'
 import PlayerCard from './PlayerCard'
+import BanRow from './BanRow'
 import { getPokemonById } from '../../data/pokemon'
 
 interface PlayerCardListProps {
@@ -9,39 +10,42 @@ interface PlayerCardListProps {
   pickedPokemonIds: string[]
   teamColor: string
   isActive: boolean
+  banEntries: BanEntry[]
 }
 
 export default function PlayerCardList({
-  team: _team,
+  team,
   teamName,
   players,
   pickedPokemonIds,
   teamColor,
   isActive,
+  banEntries,
 }: PlayerCardListProps) {
   return (
     <div
       className="player-card-list"
       style={{
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-        padding: 'clamp(0.75rem, 2vw, 1.5rem)',
-        borderRadius: 'clamp(12px, 1.5vw, 16px)',
+        padding: 'clamp(0.4rem, 1vw, 0.75rem)',
+        borderRadius: 'clamp(8px, 1vw, 12px)',
         border: isActive ? `3px solid ${teamColor}` : `2px solid ${teamColor}`,
         boxShadow: isActive
           ? `0 0 30px ${teamColor}60, 0 8px 32px rgba(0, 0, 0, 0.3)`
           : '0 4px 16px rgba(0, 0, 0, 0.2)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        minHeight: '140px',
       }}
     >
       {/* チーム名 */}
       <h2
         style={{
           color: teamColor,
-          margin: '0 0 clamp(0.75rem, 2vw, 1.5rem) 0',
-          fontSize: 'clamp(1rem, 2.5vw, 1.4rem)',
+          margin: '0 0 clamp(0.35rem, 1vw, 0.6rem) 0',
+          fontSize: 'clamp(0.8rem, 1.8vw, 1rem)',
           textAlign: 'center',
           borderBottom: `2px solid ${teamColor}40`,
-          paddingBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+          paddingBottom: 'clamp(0.3rem, 0.8vw, 0.4rem)',
           fontWeight: 'bold',
           letterSpacing: '0.05em',
           textShadow: `0 2px 12px ${teamColor}40`,
@@ -50,13 +54,16 @@ export default function PlayerCardList({
         {teamName}
       </h2>
 
+      {/* BAN枠表示 */}
+      <BanRow team={team} teamColor={teamColor} banEntries={banEntries} />
+
       {/* プレイヤーカード一覧 */}
       <div
         className="player-cards-container"
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(0.5rem, 1.5vw, 1rem)',
+          gap: 'clamp(0.3rem, 0.8vw, 0.5rem)',
         }}
       >
         {players.map((playerName, index) => {

@@ -7,6 +7,7 @@ import {
   getBannedPokemon,
   getCurrentPickingTeam,
   getCurrentMatchPicks,
+  getCurrentMatchBans,
   isMatchComplete,
   isDraftComplete,
 } from '../utils/draftLogic'
@@ -26,7 +27,7 @@ export default function DraftPage() {
 
   const [state, setState] = useState<DraftState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [pendingPick, setPendingPick] = useState<string | null>(null)
+  const [pendingPick, setPendingPick] = useState<string | null>(null) // null = BANスキップ
 
   // React 18 StrictMode による useEffect 二重実行を防ぐためのガード
   // 開発環境でも初期化が一度だけ実行されることを保証
@@ -123,37 +124,127 @@ export default function DraftPage() {
     setPendingPick(pokemonId)
   }
 
-  // 仮ピックを確定してSupabaseに保存
+  // BANスキップハンドラー
+  const handleSkipBan = () => {
+    // 🔒 読み取り専用モードでは何もしない
+    if (isReadOnly) {
+      console.warn('[DraftPage] Read-only mode: BAN skip disabled')
+      return
+    }
+
+    // BANフェーズ中のみスキップ可能
+    if (!state || state.phase !== 'ban') {
+      console.warn('[DraftPage] BAN skip is only available during BAN phase')
+      return
+    }
+
+    // nullを仮ピックとして設定（スキップを表す）
+    console.log('[DraftPage] BAN skip requested')
+    setPendingPick(null)
+  }
+
+  // 仮ピックを確定してSupabaseに保存（pendingPick が null の場合はスキップ）
   const handleConfirmPick = () => {
-    if (!pendingPick) return
+    // BANスキップ以外で null の場合は何もしない
+    if (pendingPick === null && (!state || state.phase !== 'ban')) return
 
     setState((prevState) => {
       // prevStateがnullの場合は何もしない（通常は起こらない）
       if (!prevState) return prevState
 
-      const { currentMatch } = prevState
+      const { currentMatch, phase } = prevState
       const pickingTeam = getCurrentPickingTeam(prevState)
 
-      // 現在の試合のピックに追加（イミュータブル更新）
+      // BANフェーズ中の処理
+      if (phase === 'ban') {
+        // 現在の試合のBANに追加（イミュータブル更新、重複チェック付き）
+        const newBans = { ...prevState.bans }
+        if (currentMatch === 1) {
+          const currentBans = newBans.match1[pickingTeam]
+          // 重複チェック：nullは常に追加、ポケモンIDは重複時は追加しない
+          if (pendingPick === null || !currentBans.includes(pendingPick)) {
+            newBans.match1 = {
+              ...newBans.match1,
+              [pickingTeam]: [...currentBans, pendingPick],
+            }
+          }
+        } else if (currentMatch === 2) {
+          const currentBans = newBans.match2[pickingTeam]
+          if (pendingPick === null || !currentBans.includes(pendingPick)) {
+            newBans.match2 = {
+              ...newBans.match2,
+              [pickingTeam]: [...currentBans, pendingPick],
+            }
+          }
+        } else if (currentMatch === 3) {
+          const currentBans = newBans.match3[pickingTeam]
+          if (pendingPick === null || !currentBans.includes(pendingPick)) {
+            newBans.match3 = {
+              ...newBans.match3,
+              [pickingTeam]: [...currentBans, pendingPick],
+            }
+          }
+        }
+
+        const newTurn = prevState.currentTurn + 1
+
+        // BANフェーズ完了判定（各チーム3体ずつ = 合計6ターン）
+        const isBanComplete = newTurn >= 6
+
+        const newState = {
+          ...prevState,
+          bans: newBans,
+          currentTurn: isBanComplete ? 0 : newTurn, // BAN完了時はターンリセット
+          phase: (isBanComplete ? 'pick' : 'ban') as 'ban' | 'pick', // BAN完了時はPICKフェーズへ
+          updatedAt: new Date().toISOString(),
+        }
+
+        // デバッグ：累積BAN数を確認
+        const totalBanned = getBannedPokemon(newState).length
+        const banAction = pendingPick === null ? 'SKIP' : pendingPick
+        console.log(
+          `[DraftPage] Confirming BAN: ${banAction} (${
+            isBanComplete ? 'BAN完了 → PICK移行' : `BAN ${newTurn}/6`
+          }) | 累積BAN数: ${totalBanned}`
+        )
+
+        // Supabaseに保存（非同期だが待たない）
+        saveDraftState(newState).catch((error) => {
+          console.error('Failed to save draft state after ban:', error)
+        })
+
+        return newState
+      }
+
+      // PICKフェーズ中の処理（重複チェック付き）
       const newPicks = { ...prevState.picks }
       if (currentMatch === 1) {
-        newPicks.match1 = {
-          ...newPicks.match1,
-          [pickingTeam]: [...newPicks.match1[pickingTeam], pendingPick],
+        const currentPicks = newPicks.match1[pickingTeam]
+        // 重複チェック：既にピックされていなければ追加
+        if (!currentPicks.includes(pendingPick)) {
+          newPicks.match1 = {
+            ...newPicks.match1,
+            [pickingTeam]: [...currentPicks, pendingPick],
+          }
         }
       } else if (currentMatch === 2) {
-        newPicks.match2 = {
-          ...newPicks.match2,
-          [pickingTeam]: [...newPicks.match2[pickingTeam], pendingPick],
+        const currentPicks = newPicks.match2[pickingTeam]
+        if (!currentPicks.includes(pendingPick)) {
+          newPicks.match2 = {
+            ...newPicks.match2,
+            [pickingTeam]: [...currentPicks, pendingPick],
+          }
         }
       } else if (currentMatch === 3) {
-        newPicks.match3 = {
-          ...newPicks.match3,
-          [pickingTeam]: [...newPicks.match3[pickingTeam], pendingPick],
+        const currentPicks = newPicks.match3[pickingTeam]
+        if (!currentPicks.includes(pendingPick)) {
+          newPicks.match3 = {
+            ...newPicks.match3,
+            [pickingTeam]: [...currentPicks, pendingPick],
+          }
         }
       }
 
-      // 新しいstateを返す
       const newState = {
         ...prevState,
         picks: newPicks,
@@ -161,8 +252,11 @@ export default function DraftPage() {
         updatedAt: new Date().toISOString(),
       }
 
-      // Supabaseに保存（非同期だが待たない）
-      console.log('[DraftPage] Confirming pick:', pendingPick)
+      // デバッグ：累積BAN数を確認
+      const totalBanned = getBannedPokemon(newState).length
+      console.log(
+        `[DraftPage] Confirming PICK: ${pendingPick} | 累積BAN数: ${totalBanned}`
+      )
       saveDraftState(newState).catch((error) => {
         console.error('Failed to save draft state after pick:', error)
       })
@@ -201,8 +295,11 @@ export default function DraftPage() {
         ...prevState,
         currentMatch: (prevState.currentMatch + 1) as 1 | 2 | 3,
         currentTurn: 0,
+        phase: 'ban' as 'ban' | 'pick', // 次の試合はBANフェーズから開始
         updatedAt: new Date().toISOString(),
       }
+
+      console.log('[DraftPage] Transitioning to next match (BAN phase)')
 
       // Supabaseに保存（非同期だが待たない）
       saveDraftState(newState).catch((error) => {
@@ -251,6 +348,8 @@ export default function DraftPage() {
   // この時点でstateは必ず存在する
   // BAN判定
   const bannedPokemon = getBannedPokemon(state)
+  // 現在の試合でBAN済みのポケモンID配列
+  const currentMatchBannedPokemonIds = getCurrentMatchBans(state)
 
   // 現在ピック中のチーム
   const currentPickingTeam = getCurrentPickingTeam(state)
@@ -258,6 +357,20 @@ export default function DraftPage() {
   // 試合終了判定
   const matchComplete = isMatchComplete(state)
   const draftComplete = isDraftComplete(state)
+
+  // 現在の試合のBAN枠を取得
+  const currentMatchBanEntriesA =
+    state.currentMatch === 1
+      ? state.bans.match1.A
+      : state.currentMatch === 2
+      ? state.bans.match2.A
+      : state.bans.match3.A
+  const currentMatchBanEntriesB =
+    state.currentMatch === 1
+      ? state.bans.match1.B
+      : state.currentMatch === 2
+      ? state.bans.match2.B
+      : state.bans.match3.B
 
   return (
     <div
@@ -325,9 +438,41 @@ export default function DraftPage() {
                 marginTop: 'clamp(0.3rem, 1vw, 0.5rem)',
                 color: '#aaa',
                 fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'clamp(0.5rem, 1vw, 0.75rem)',
+                flexWrap: 'wrap',
               }}
             >
-              試合 {state.currentMatch} / 3 | ターン {state.currentTurn}
+              <span>試合 {state.currentMatch} / 3</span>
+              <span
+                style={{
+                  background:
+                    state.phase === 'ban'
+                      ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
+                      : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                  color: 'white',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  fontSize: 'clamp(0.7rem, 1.5vw, 0.85rem)',
+                  fontWeight: 'bold',
+                  boxShadow:
+                    state.phase === 'ban'
+                      ? '0 2px 8px rgba(220, 38, 38, 0.4)'
+                      : '0 2px 8px rgba(74, 222, 128, 0.4)',
+                }}
+              >
+                {state.phase === 'ban' ? '🚫 BAN' : '✓ PICK'}
+              </span>
+              <span>ターン {state.currentTurn}</span>
+              <span
+                style={{
+                  color: '#666',
+                  fontSize: 'clamp(0.65rem, 1.2vw, 0.75rem)',
+                }}
+              >
+                (使用不可: {bannedPokemon.length}体)
+              </span>
             </div>
           </div>
 
@@ -381,14 +526,17 @@ export default function DraftPage() {
         <div className="draft-grid-layout">
           {/* チームA */}
           <div style={{ gridArea: 'teamA' }}>
-            <PlayerCardList
-              team="A"
-              teamName={state.teams.A.name}
-              players={state.teams.A.players}
-              pickedPokemonIds={getCurrentMatchPicks(state, 'A')}
-              teamColor="#e94560"
-              isActive={currentPickingTeam === 'A'}
-            />
+            <div style={{ width: '80%', margin: '0 auto' }}>
+              <PlayerCardList
+                team="A"
+                teamName={state.teams.A.name}
+                players={state.teams.A.players}
+                pickedPokemonIds={getCurrentMatchPicks(state, 'A')}
+                teamColor="#e94560"
+                isActive={currentPickingTeam === 'A'}
+                banEntries={currentMatchBanEntriesA}
+              />
+            </div>
           </div>
 
           {/* 中央エリア（ポケモングリッド） */}
@@ -407,32 +555,46 @@ export default function DraftPage() {
           >
             <PokemonGrid
               bannedPokemon={bannedPokemon}
+              currentMatchBannedPokemonIds={currentMatchBannedPokemonIds}
               state={state}
               onPokemonPick={handlePokemonPick}
               isReadOnly={isReadOnly}
             />
 
-            {/* 仮ピック確定/キャンセルボタン */}
-            {pendingPick && !isReadOnly && !matchComplete && (
+            {/* 仮ピック/仮BAN確定/キャンセルボタン */}
+            {pendingPick !== undefined && !isReadOnly && !matchComplete && (
               <div
                 style={{
                   background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
                   padding: 'clamp(1rem, 2vw, 1.5rem)',
                   borderRadius: '12px',
-                  border: '2px solid #fbbf2460',
-                  boxShadow: '0 8px 24px rgba(251, 191, 36, 0.3)',
+                  border: `2px solid ${
+                    state.phase === 'ban' ? '#ef444460' : '#fbbf2460'
+                  }`,
+                  boxShadow: `0 8px 24px ${
+                    state.phase === 'ban'
+                      ? 'rgba(239, 68, 68, 0.3)'
+                      : 'rgba(251, 191, 36, 0.3)'
+                  }`,
                   textAlign: 'center',
                 }}
               >
                 <div
                   style={{
-                    color: '#fbbf24',
+                    color: state.phase === 'ban' ? '#ef4444' : '#fbbf24',
                     marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
                     fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                     fontWeight: 'bold',
                   }}
                 >
-                  仮ピック: <strong>{pendingPick}</strong>
+                  {pendingPick === null ? (
+                    <>⏭️ BANスキップ</>
+                  ) : (
+                    <>
+                      {state.phase === 'ban' ? '🚫 仮BAN' : '✓ 仮ピック'}:{' '}
+                      <strong>{pendingPick}</strong>
+                    </>
+                  )}
                 </div>
                 <div
                   style={{
@@ -495,6 +657,60 @@ export default function DraftPage() {
                 </div>
               </div>
             )}
+
+            {/* BANスキップボタン（BANフェーズ中で何も選択していない時） */}
+            {state.phase === 'ban' &&
+              !pendingPick &&
+              !isReadOnly &&
+              !matchComplete && (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                    padding: 'clamp(1rem, 2vw, 1.5rem)',
+                    borderRadius: '12px',
+                    border: '2px solid #6b728040',
+                    boxShadow: '0 8px 24px rgba(107, 114, 128, 0.2)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      color: '#9ca3af',
+                      marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                      fontSize: 'clamp(0.85rem, 1.8vw, 1rem)',
+                    }}
+                  >
+                    ポケモンを選択するか、このBAN枠をスキップできます
+                  </div>
+                  <button
+                    onClick={handleSkipBan}
+                    style={{
+                      background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                      color: 'white',
+                      border: 'none',
+                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                      borderRadius: '10px',
+                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(107, 114, 128, 0.4)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow =
+                        '0 8px 24px rgba(107, 114, 128, 0.6)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow =
+                        '0 4px 16px rgba(107, 114, 128, 0.4)'
+                    }}
+                  >
+                    ⏭️ このBAN枠をスキップ
+                  </button>
+                </div>
+              )}
 
             {/* 試合終了時のボタン・メッセージ表示 */}
             {matchComplete && !isReadOnly && (
@@ -610,14 +826,17 @@ export default function DraftPage() {
 
           {/* チームB */}
           <div style={{ gridArea: 'teamB' }}>
-            <PlayerCardList
-              team="B"
-              teamName={state.teams.B.name}
-              players={state.teams.B.players}
-              pickedPokemonIds={getCurrentMatchPicks(state, 'B')}
-              teamColor="#4ade80"
-              isActive={currentPickingTeam === 'B'}
-            />
+            <div style={{ width: '80%', margin: '0 auto' }}>
+              <PlayerCardList
+                team="B"
+                teamName={state.teams.B.name}
+                players={state.teams.B.players}
+                pickedPokemonIds={getCurrentMatchPicks(state, 'B')}
+                teamColor="#4ade80"
+                isActive={currentPickingTeam === 'B'}
+                banEntries={currentMatchBanEntriesB}
+              />
+            </div>
           </div>
         </div>
       </main>
@@ -649,7 +868,7 @@ export default function DraftPage() {
         /* PC: 大画面（1024px以上） - 3カラム */
         @media (min-width: 1024px) {
           .draft-grid-layout {
-            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-columns: 1fr 3fr 1fr;
             grid-template-areas: "teamA center teamB";
           }
         }
