@@ -16,7 +16,7 @@ export default function PickedPokemonSlot({
         style={{
           padding: '0.5rem',
           marginBottom: '0.5rem',
-          backgroundColor: '#0f3460',
+          backgroundColor: 'rgba(255, 255, 255, 0.87)',
           borderRadius: '4px',
           border: '2px dashed #333',
           minHeight: '60px',

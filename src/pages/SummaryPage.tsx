@@ -49,8 +49,8 @@ export default function SummaryPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
-          color: 'white',
+          background: 'rgba(255, 255, 255, 0.87)',
+          color: '#111827',
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -59,15 +59,12 @@ export default function SummaryPage() {
               fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
               marginBottom: '1rem',
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              color: '#10b981',
             }}
           >
             読み込み中...
           </div>
-          <div style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#aaa' }}>
+          <div style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#6b7280' }}>
             ドラフト結果を取得しています
           </div>
         </div>
@@ -83,8 +80,8 @@ export default function SummaryPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
-          color: 'white',
+          background: 'rgba(255, 255, 255, 0.87)',
+          color: '#111827',
         }}
       >
         <div style={{ textAlign: 'center', padding: '2rem' }}>
@@ -92,7 +89,7 @@ export default function SummaryPage() {
             style={{
               fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
               marginBottom: '1rem',
-              color: '#ef4444',
+              color: '#dc2626',
               fontWeight: 'bold',
             }}
           >
@@ -101,7 +98,7 @@ export default function SummaryPage() {
           <div
             style={{
               fontSize: 'clamp(0.85rem, 2vw, 1rem)',
-              color: '#aaa',
+              color: '#6b7280',
               marginBottom: '2rem',
             }}
           >
@@ -111,23 +108,23 @@ export default function SummaryPage() {
             to="/setup"
             style={{
               display: 'inline-block',
-              background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
               borderRadius: '12px',
               textDecoration: 'none',
               fontWeight: 'bold',
               fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-              boxShadow: '0 8px 24px rgba(74, 222, 128, 0.4)',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
               transition: 'all 0.3s ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 222, 128, 0.6)'
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.4)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)'
             }}
           >
             セットアップ画面へ戻る
@@ -146,11 +143,11 @@ export default function SummaryPage() {
     <div
       key={playerIndex}
       style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+        background: '#ffffff',
         borderRadius: 'clamp(12px, 1.5vw, 16px)',
         padding: 'clamp(0.75rem, 2vw, 1rem)',
-        border: `2px solid ${teamColor}40`,
-        boxShadow: `0 4px 16px ${teamColor}30`,
+        border: `2px solid ${teamColor}20`,
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
         display: 'flex',
         alignItems: 'center',
         gap: 'clamp(0.75rem, 2vw, 1rem)',
@@ -168,7 +165,7 @@ export default function SummaryPage() {
             borderRadius: '10px',
             objectFit: 'cover',
             border: `3px solid ${teamColor}`,
-            boxShadow: `0 4px 12px ${teamColor}40`,
+            boxShadow: `0 2px 6px ${teamColor}30`,
           }}
         />
       </div>
@@ -177,7 +174,7 @@ export default function SummaryPage() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            color: '#aaa',
+            color: '#6b7280',
             fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
             marginBottom: '0.25rem',
           }}
@@ -186,7 +183,7 @@ export default function SummaryPage() {
         </div>
         <div
           style={{
-            color: 'white',
+            color: '#111827',
             fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
             fontWeight: 'bold',
             marginBottom: '0.25rem',
@@ -202,7 +199,6 @@ export default function SummaryPage() {
             color: teamColor,
             fontSize: 'clamp(0.8rem, 1.8vw, 0.95rem)',
             fontWeight: 'bold',
-            textShadow: `0 2px 8px ${teamColor}60`,
           }}
         >
           {getPokemonName(pokemonId)}
@@ -219,11 +215,11 @@ export default function SummaryPage() {
     <div
       key={matchNumber}
       style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        background: '#ffffff',
         padding: 'clamp(1rem, 3vw, 1.5rem)',
         borderRadius: 'clamp(12px, 2vw, 16px)',
-        border: '2px solid #2a2a3e',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
       }}
     >
       <h2
@@ -232,10 +228,7 @@ export default function SummaryPage() {
           fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
           fontWeight: 'bold',
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
+          color: '#10b981',
           letterSpacing: '0.05em',
         }}
       >
@@ -246,22 +239,21 @@ export default function SummaryPage() {
         {/* チームA */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+            background: '#ffffff',
             padding: 'clamp(0.75rem, 2vw, 1.25rem)',
             borderRadius: 'clamp(12px, 1.5vw, 16px)',
-            border: '2px solid #dc262640',
-            boxShadow: '0 4px 16px rgba(220, 38, 38, 0.2)',
+            border: '2px solid #e9456020',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
           }}
         >
           <h3
             style={{
               margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
               fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-              color: '#dc2626',
+              color: '#e94560',
               fontWeight: 'bold',
               textAlign: 'center',
-              textShadow: '0 2px 12px rgba(220, 38, 38, 0.4)',
-              borderBottom: '2px solid #dc262640',
+              borderBottom: '2px solid #e9456020',
               paddingBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
             }}
           >
@@ -278,7 +270,7 @@ export default function SummaryPage() {
               renderPlayerCard(
                 state.teams.A.players[index],
                 pokemonId,
-                '#dc2626',
+                '#e94560',
                 index
               )
             )}
@@ -288,11 +280,11 @@ export default function SummaryPage() {
         {/* チームB */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+            background: '#ffffff',
             padding: 'clamp(0.75rem, 2vw, 1.25rem)',
             borderRadius: 'clamp(12px, 1.5vw, 16px)',
-            border: '2px solid #4ade8040',
-            boxShadow: '0 4px 16px rgba(74, 222, 128, 0.2)',
+            border: '2px solid #4ade8020',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
           }}
         >
           <h3
@@ -302,8 +294,7 @@ export default function SummaryPage() {
               color: '#4ade80',
               fontWeight: 'bold',
               textAlign: 'center',
-              textShadow: '0 2px 12px rgba(74, 222, 128, 0.4)',
-              borderBottom: '2px solid #4ade8040',
+              borderBottom: '2px solid #4ade8020',
               paddingBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
             }}
           >
@@ -334,17 +325,17 @@ export default function SummaryPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
+        background: 'rgba(255, 255, 255, 0.87)',
       }}
     >
       {/* ヘッダー */}
       <header
         style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          color: 'white',
+          background: '#ffffff',
+          color: '#111827',
           padding: 'clamp(1rem, 3vw, 2rem)',
-          borderBottom: '2px solid #2a2a3e',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+          borderBottom: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
         }}
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -353,10 +344,7 @@ export default function SummaryPage() {
               margin: 0,
               fontSize: 'clamp(1.5rem, 4vw, 2rem)',
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              color: '#111827',
               letterSpacing: '0.05em',
             }}
           >
@@ -366,7 +354,7 @@ export default function SummaryPage() {
             style={{
               fontSize: 'clamp(0.85rem, 2vw, 1rem)',
               marginTop: 'clamp(0.5rem, 1vw, 0.75rem)',
-              color: '#aaa',
+              color: '#6b7280',
             }}
           >
             全試合のピック一覧
@@ -395,24 +383,24 @@ export default function SummaryPage() {
               to="/setup"
               style={{
                 display: 'inline-block',
-                background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: 'white',
                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem)',
                 borderRadius: '12px',
                 textDecoration: 'none',
                 fontWeight: 'bold',
                 fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-                boxShadow: '0 8px 24px rgba(74, 222, 128, 0.4)',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
                 transition: 'all 0.3s ease',
                 letterSpacing: '0.05em',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 222, 128, 0.6)'
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.4)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)'
               }}
             >
               新規大会を作成

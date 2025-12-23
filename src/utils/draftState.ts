@@ -30,6 +30,13 @@ export function createInitialDraftState(data: SetupData): DraftState {
     currentMatch: 1,
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
+    currentBanTeam: data.firstPick, // 先攻チームがBAN開始
+    currentBanCount: 0, // BAN回数は0から
+    banConfirmed: {
+      match1: { A: false, B: false },
+      match2: { A: false, B: false },
+      match3: { A: false, B: false },
+    },
     firstPickByMatch: {
       1: data.firstPick,
       2: data.firstPick === 'A' ? 'B' : 'A',
@@ -72,6 +79,13 @@ export function createMockDraftState(): DraftState {
     currentMatch: 1,
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
+    currentBanTeam: 'A', // チームAがBAN開始
+    currentBanCount: 0, // BAN回数は0から
+    banConfirmed: {
+      match1: { A: false, B: false },
+      match2: { A: false, B: false },
+      match3: { A: false, B: false },
+    },
     firstPickByMatch: {
       1: 'A',
       2: 'B',
@@ -113,6 +127,13 @@ export function createMockDraftStateMatch2(): DraftState {
     currentMatch: 2,
     currentTurn: 2,
     phase: 'pick', // PICKフェーズ
+    currentBanTeam: null, // PICKフェーズ中はnull
+    currentBanCount: 0, // PICKフェーズ中は0
+    banConfirmed: {
+      match1: { A: true, B: true }, // 第1試合は確定済み
+      match2: { A: true, B: false }, // 第2試合は進行中
+      match3: { A: false, B: false },
+    },
     firstPickByMatch: {
       1: 'A',
       2: 'B',
@@ -166,6 +187,13 @@ export function createMockDraftStateMatch3(): DraftState {
     currentMatch: 3,
     currentTurn: 1,
     phase: 'pick', // PICKフェーズ
+    currentBanTeam: null, // PICKフェーズ中はnull
+    currentBanCount: 0, // PICKフェーズ中は0
+    banConfirmed: {
+      match1: { A: true, B: true }, // 第1試合は確定済み
+      match2: { A: true, B: true }, // 第2試合は確定済み
+      match3: { A: false, B: false }, // 第3試合は進行中
+    },
     firstPickByMatch: {
       1: 'A',
       2: 'B',

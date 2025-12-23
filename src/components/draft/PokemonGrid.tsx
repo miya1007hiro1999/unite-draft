@@ -1,6 +1,7 @@
 import { POKEMON_LIST } from '../../data/pokemon'
 import PokemonCard from './PokemonCard'
 import type { DraftState } from '../../types/draft'
+import type { Pokemon } from '../../types/pokemon'
 import { isPokemonSelectable, getCurrentMatchPicks } from '../../utils/draftLogic'
 
 interface PokemonGridProps {
@@ -52,22 +53,50 @@ export default function PokemonGrid({
     ...allPicksUpToCurrentMatch, // 現在試合までのPICK
   ])
 
-  // ポケモンリストを並び替え: 未使用 → 上、使用済み → 下
-  const sortedPokemonList = [...POKEMON_LIST].sort((a, b) => {
-    const aUsed = usedPokemonIds.has(a.id)
-    const bUsed = usedPokemonIds.has(b.id)
+  // typeの順番を固定
+  const typeOrder: Pokemon['type'][] = ['attack', 'defence', 'speed', 'support', 'balance']
 
-    // 未使用を上に、使用済みを下に
-    if (aUsed && !bUsed) return 1
-    if (!aUsed && bUsed) return -1
+  // typeごとにグループ化
+  const pokemonByType: Record<Pokemon['type'], Pokemon[]> = {
+    attack: [],
+    defence: [],
+    speed: [],
+    support: [],
+    balance: [],
+  }
 
-    // 同じグループ内では元の順序を保持
-    return 0
+  POKEMON_LIST.forEach((pokemon) => {
+    pokemonByType[pokemon.type].push(pokemon)
   })
+
+  // 各typeグループ内で優先度順にソート
+  typeOrder.forEach((type) => {
+    pokemonByType[type].sort((a, b) => {
+      const aIsBanned = bannedPokemon.includes(a.id)
+      const bIsBanned = bannedPokemon.includes(b.id)
+      const aIsPicked = allPicksUpToCurrentMatch.includes(a.id)
+      const bIsPicked = allPicksUpToCurrentMatch.includes(b.id)
+
+      // 優先度: 未使用=0, BAN=1, PICK=2
+      const aPriority = aIsBanned ? 1 : aIsPicked ? 2 : 0
+      const bPriority = bIsBanned ? 1 : bIsPicked ? 2 : 0
+
+      return aPriority - bPriority
+    })
+  })
+
+  // type名の表示ラベル
+  const typeLabels: Record<Pokemon['type'], string> = {
+    attack: 'アタック',
+    defence: 'ディフェンス',
+    speed: 'スピード',
+    support: 'サポート',
+    balance: 'バランス',
+  }
 
   // フェーズに応じたタイトル
   const title = state.phase === 'ban' ? '🚫 BAN 選択' : '✓ ポケモン選択'
-  const titleColor = state.phase === 'ban' ? '#ef4444' : '#4ade80'
+  const titleColor = state.phase === 'ban' ? '#dc2626' : '#059669'
 
   return (
     <div>
@@ -79,7 +108,6 @@ export default function PokemonGrid({
           textAlign: 'center',
           fontWeight: 'bold',
           letterSpacing: '0.05em',
-          textShadow: `0 1px 6px ${titleColor}40`,
         }}
       >
         {title}
@@ -88,13 +116,13 @@ export default function PokemonGrid({
             style={{
               marginLeft: 'clamp(0.2rem, 0.7vw, 0.35rem)',
               fontSize: 'clamp(0.5rem, 1.1vw, 0.6rem)',
-              color: '#fbbf24',
-              backgroundColor: '#78350f',
+              color: '#92400e',
+              backgroundColor: '#fef3c7',
               padding: 'clamp(0.15rem, 0.4vw, 0.2rem) clamp(0.2rem, 0.7vw, 0.35rem)',
               borderRadius: '3px',
               fontWeight: 'bold',
-              border: '1px solid #fbbf2440',
-              boxShadow: '0 1px 6px rgba(251, 191, 36, 0.3)',
+              border: '1px solid #fbbf24',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             }}
           >
             読み取り専用
@@ -105,50 +133,76 @@ export default function PokemonGrid({
       <div
         className="pokemon-grid-container"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 'clamp(0.25rem, 0.5vw, 0.35rem)',
-          maxHeight: 'clamp(55vh, 65vh, 70vh)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(0.5rem, 1vw, 0.75rem)',
+          maxHeight: 'clamp(45vh, 55vh, 65vh)',
           overflowY: 'auto',
           padding: 'clamp(0.25rem, 0.5vw, 0.35rem)',
-          background: 'linear-gradient(135deg, #0f141910 0%, #1a1a2e10 100%)',
+          background: '#f9fafb',
           borderRadius: 'clamp(6px, 0.8vw, 10px)',
-          border: '1px solid #2a2a3e40',
+          border: '1px solid #e5e7eb',
         }}
       >
-        {sortedPokemonList.map((pokemon) => {
-          const isBanned = bannedPokemon.includes(pokemon.id)
-          // 🔒 読み取り専用モードでは全て選択不可
-          const isSelectable = !isReadOnly && isPokemonSelectable(state, pokemon.id)
-          // 現在の試合でピック済みかどうか（PICKフェーズのみ）
-          const isPickedInCurrentMatch =
-            state.phase === 'pick' && currentMatchPicks.includes(pokemon.id)
-          // 現在の試合でBAN済みかどうか（BANフェーズのみ）
-          const isBannedInCurrentMatch =
-            state.phase === 'ban' && currentMatchBannedPokemonIds.includes(pokemon.id)
-          // 現在の試合で使用済み（BAN or PICK）
-          const isUsedInCurrentMatch = usedPokemonIds.has(pokemon.id)
-
-          return (
+        {typeOrder.map((type) => (
+          <div key={type}>
+            {/* type見出し */}
             <div
-              key={pokemon.id}
               style={{
-                // 使用済みポケモンに視覚効果を適用
-                opacity: isUsedInCurrentMatch ? 0.5 : 1,
-                filter: isUsedInCurrentMatch ? 'grayscale(70%)' : 'none',
-                transition: 'opacity 0.3s ease, filter 0.3s ease',
+                fontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
+                fontWeight: 'bold',
+                color: '#6b7280',
+                marginBottom: 'clamp(0.2rem, 0.4vw, 0.3rem)',
+                paddingLeft: 'clamp(0.2rem, 0.4vw, 0.3rem)',
               }}
             >
-              <PokemonCard
-                pokemon={pokemon}
-                isBanned={isBanned}
-                isSelectable={isSelectable}
-                isPickedInCurrentMatch={isPickedInCurrentMatch || isBannedInCurrentMatch}
-                onClick={() => !isReadOnly && isSelectable && onPokemonPick(pokemon.id)}
-              />
+              {typeLabels[type]}
             </div>
-          )
-        })}
+            {/* ポケモンカードを横並び表示 */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '10px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {pokemonByType[type].map((pokemon) => {
+                const isBanned = bannedPokemon.includes(pokemon.id)
+                // 🔒 読み取り専用モードでは全て選択不可
+                const isSelectable = !isReadOnly && isPokemonSelectable(state, pokemon.id)
+                // 現在の試合でピック済みかどうか（PICKフェーズのみ）
+                const isPickedInCurrentMatch =
+                  state.phase === 'pick' && currentMatchPicks.includes(pokemon.id)
+                // 現在の試合でBAN済みかどうか（BANフェーズのみ）
+                const isBannedInCurrentMatch =
+                  state.phase === 'ban' && currentMatchBannedPokemonIds.includes(pokemon.id)
+                // 現在の試合で使用済み（BAN or PICK）
+                const isUsedInCurrentMatch = usedPokemonIds.has(pokemon.id)
+
+                return (
+                  <div
+                    key={pokemon.id}
+                    style={{
+                      // 使用済みポケモンに視覚効果を適用
+                      opacity: isUsedInCurrentMatch ? 0.5 : 1,
+                      filter: isUsedInCurrentMatch ? 'grayscale(70%)' : 'none',
+                      transition: 'opacity 0.3s ease, filter 0.3s ease',
+                    }}
+                  >
+                    <PokemonCard
+                      pokemon={pokemon}
+                      isBanned={isBanned}
+                      isSelectable={isSelectable}
+                      isPickedInCurrentMatch={isPickedInCurrentMatch || isBannedInCurrentMatch}
+                      onClick={() => !isReadOnly && isSelectable && onPokemonPick(pokemon.id)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

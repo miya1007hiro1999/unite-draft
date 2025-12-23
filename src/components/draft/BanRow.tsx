@@ -4,9 +4,16 @@ import type { BanEntry } from '../../types/draft'
 interface BanRowProps {
   teamColor: string
   banEntries: BanEntry[]
+  isCancellable?: boolean // 仮確定中で取り消し可能かどうか
+  onCancelBan?: (banIndex: number) => void // BAN取り消しハンドラー
 }
 
-export default function BanRow({ teamColor, banEntries }: BanRowProps) {
+export default function BanRow({
+  teamColor,
+  banEntries,
+  isCancellable = false,
+  onCancelBan,
+}: BanRowProps) {
   // 常に3枠表示（未確定枠はundefinedで表現）
   // IMPORTANT: nullはスキップ確定なので、そのまま保持する
   const slots: (BanEntry | undefined)[] = [
@@ -43,7 +50,13 @@ export default function BanRow({ teamColor, banEntries }: BanRowProps) {
         }}
       >
         {slots.map((entry, index) => (
-          <BanSlot key={index} entry={entry} teamColor={teamColor} />
+          <BanSlot
+            key={index}
+            entry={entry}
+            teamColor={teamColor}
+            isCancellable={isCancellable && entry !== undefined}
+            onCancel={onCancelBan ? () => onCancelBan(index) : undefined}
+          />
         ))}
       </div>
     </div>

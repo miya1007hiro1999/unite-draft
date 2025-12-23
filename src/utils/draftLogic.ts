@@ -205,9 +205,10 @@ export function getPickSequenceByMatch(
  * @returns 現在ピック中/BAN中のチーム（'A' | 'B'）
  */
 export function getCurrentPickingTeam(state: DraftState): Team {
-  // BANフェーズ中はBAN中のチームを返す
+  // BANフェーズ中はcurrentBanTeamを返す（新しいチーム単位BAN方式）
   if (state.phase === 'ban') {
-    return getCurrentBanningTeam(state)
+    // currentBanTeamがnullの場合は先攻チームをデフォルトとして返す
+    return state.currentBanTeam ?? state.firstPickByMatch[state.currentMatch]
   }
 
   // PICKフェーズ中はピック中のチームを返す

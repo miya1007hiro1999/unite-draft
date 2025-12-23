@@ -13,6 +13,15 @@ export type DraftState = {
   currentMatch: 1 | 2 | 3
   currentTurn: number
   phase: Phase // BANフェーズ or PICKフェーズ
+  // BANフェーズ専用の進行管理
+  currentBanTeam: Team | null // 現在BAN中のチーム（BANフェーズ外ではnull）
+  currentBanCount: number // 現在のチームが行ったBAN回数（0-3）
+  // BANの確定状態（試合・チームごと）
+  banConfirmed: {
+    match1: { A: boolean; B: boolean }
+    match2: { A: boolean; B: boolean }
+    match3: { A: boolean; B: boolean }
+  }
   firstPickByMatch: {
     1: Team
     2: Team

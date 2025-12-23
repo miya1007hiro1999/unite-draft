@@ -18,22 +18,22 @@ export default function PlayerCard({
     <div
       className="player-card"
       style={{
+        flex: 1,
         background: isCurrentPicker
-          ? `linear-gradient(135deg, ${teamColor}20 0%, ${teamColor}10 100%)`
-          : 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+          ? `linear-gradient(135deg, ${teamColor}08 0%, ${teamColor}04 100%)`
+          : '#f9fafb',
         borderRadius: '6px',
-        padding: 'clamp(0.25rem, 0.7vw, 0.4rem)',
-        border: isCurrentPicker ? `2px solid ${teamColor}` : '1.5px solid #2a2a3e',
+        padding: 'clamp(0.2rem, 0.5vw, 0.3rem)',
+        border: isCurrentPicker ? `2px solid ${teamColor}` : '1px solid #e5e7eb',
         boxShadow: isCurrentPicker
-          ? `0 4px 16px ${teamColor}40, 0 0 0 1px ${teamColor}20 inset`
-          : '0 2px 8px rgba(0, 0, 0, 0.3)',
+          ? `0 0 0 3px ${teamColor}20, 0 1px 3px rgba(0, 0, 0, 0.1)`
+          : '0 1px 2px rgba(0, 0, 0, 0.05)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
-        minHeight: 'clamp(60px, 8vh, 80px)',
+        minHeight: 'clamp(50px, 7vh, 70px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        backdropFilter: isCurrentPicker ? 'blur(10px)' : 'none',
         transform: isCurrentPicker ? 'scale(1.02)' : 'scale(1)',
       }}
     >
@@ -45,14 +45,14 @@ export default function PlayerCard({
             top: '-6px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: `linear-gradient(135deg, ${teamColor} 0%, ${teamColor}dd 100%)`,
+            background: teamColor,
             color: 'white',
             padding: '0.15rem 0.4rem',
             borderRadius: '5px',
             fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)',
             fontWeight: 'bold',
             letterSpacing: '0.1em',
-            boxShadow: `0 2px 8px ${teamColor}60`,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
             animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }}
         >
@@ -110,14 +110,13 @@ export default function PlayerCard({
             </div>
             <div
               style={{
-                background: `linear-gradient(90deg, transparent 0%, ${teamColor}20 50%, transparent 100%)`,
-                color: 'white',
-                fontSize: 'clamp(0.55rem, 1.1vw, 0.65rem)',
+                background: `linear-gradient(90deg, transparent 0%, ${teamColor}15 50%, transparent 100%)`,
+                color: '#374151',
+                fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
                 fontWeight: 'bold',
-                marginTop: 'clamp(0.15rem, 0.4vw, 0.25rem)',
+                marginTop: 'clamp(0.1rem, 0.3vw, 0.2rem)',
                 padding: '0.1rem 0.2rem',
                 borderRadius: '3px',
-                textShadow: `0 1px 6px ${teamColor}80`,
               }}
             >
               {pokemon.name}
@@ -128,20 +127,20 @@ export default function PlayerCard({
           <div
             style={{
               width: '100%',
-              height: 'clamp(35px, 4.5vh, 48px)',
-              border: '1.5px dashed #3a3a4e',
+              height: 'clamp(30px, 4vh, 42px)',
+              border: '1px dashed #d1d5db',
               borderRadius: '5px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#666',
-              fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
-              background: 'linear-gradient(135deg, #0f141920 0%, #1a1a2e20 100%)',
+              color: '#9ca3af',
+              fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)',
+              background: '#ffffff',
               transition: 'all 0.3s ease',
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.2rem)', opacity: 0.3 }}>
+              <div style={{ fontSize: 'clamp(0.8rem, 1.6vw, 1rem)', opacity: 0.3 }}>
                 ✦
               </div>
               <div style={{ marginTop: '0.1rem' }}>未選択</div>
@@ -154,18 +153,16 @@ export default function PlayerCard({
       <div
         style={{
           textAlign: 'center',
-          padding: 'clamp(0.2rem, 0.5vw, 0.3rem) clamp(0.25rem, 0.7vw, 0.35rem)',
+          padding: 'clamp(0.15rem, 0.4vw, 0.25rem) clamp(0.2rem, 0.6vw, 0.3rem)',
           background: isCurrentPicker
-            ? `linear-gradient(135deg, ${teamColor}30 0%, ${teamColor}20 100%)`
-            : 'linear-gradient(135deg, #0f3460 0%, #0a2540 100%)',
+            ? `linear-gradient(135deg, ${teamColor}20 0%, ${teamColor}10 100%)`
+            : '#f3f4f6',
           borderRadius: '4px',
-          color: 'white',
-          fontSize: 'clamp(0.55rem, 1.1vw, 0.65rem)',
+          color: isCurrentPicker ? teamColor : '#374151',
+          fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
           fontWeight: isCurrentPicker ? 'bold' : '500',
-          border: isCurrentPicker ? `1px solid ${teamColor}40` : '1px solid #1a3a5a',
-          boxShadow: isCurrentPicker
-            ? `0 2px 8px ${teamColor}30`
-            : '0 1px 4px rgba(0, 0, 0, 0.2)',
+          border: isCurrentPicker ? `1px solid ${teamColor}` : '1px solid #e5e7eb',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           transition: 'all 0.3s ease',
         }}
       >

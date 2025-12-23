@@ -88,7 +88,7 @@ export default function SetupPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
+        background: 'rgba(255, 255, 255, 0.87)',
         padding: 'clamp(1rem, 3vw, 2rem)',
         display: 'flex',
         alignItems: 'center',
@@ -99,19 +99,16 @@ export default function SetupPage() {
         style={{
           maxWidth: '900px',
           width: '100%',
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          background: '#ffffff',
           borderRadius: 'clamp(16px, 2vw, 24px)',
           padding: 'clamp(1.5rem, 4vw, 3rem)',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #e5e7eb',
         }}
       >
         <h1
           style={{
-            background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            color: '#111827',
             fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
             fontWeight: 'bold',
             textAlign: 'center',
@@ -125,13 +122,13 @@ export default function SetupPage() {
         {error && (
           <div
             style={{
-              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-              color: 'white',
+              background: '#fee2e2',
+              color: '#991b1b',
               padding: 'clamp(0.75rem, 2vw, 1rem)',
               borderRadius: '12px',
               marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
-              border: '2px solid rgba(220, 38, 38, 0.5)',
-              boxShadow: '0 8px 24px rgba(220, 38, 38, 0.4)',
+              border: '1px solid #dc2626',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
               fontWeight: 'bold',
               textAlign: 'center',
             }}
@@ -143,7 +140,7 @@ export default function SetupPage() {
         <div style={{ marginBottom: 'clamp(1.5rem, 3vw, 2rem)' }}>
           <label
             style={{
-              color: '#e0e0e0',
+              color: '#374151',
               fontSize: 'clamp(0.9rem, 2vw, 1rem)',
               fontWeight: 'bold',
               marginBottom: '0.5rem',
@@ -161,20 +158,20 @@ export default function SetupPage() {
               display: 'block',
               width: '100%',
               padding: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-              background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
-              border: '2px solid #2a2a3e',
+              background: '#ffffff',
+              border: '1px solid #d1d5db',
               borderRadius: '10px',
-              color: 'white',
+              color: '#1f2937',
               fontSize: 'clamp(0.9rem, 2vw, 1rem)',
               transition: 'all 0.3s ease',
               outline: 'none',
             }}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#4ade80'
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(74, 222, 128, 0.3)'
+              e.currentTarget.style.borderColor = '#10b981'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)'
             }}
             onBlur={(e) => {
-              e.currentTarget.style.borderColor = '#2a2a3e'
+              e.currentTarget.style.borderColor = '#d1d5db'
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
@@ -184,28 +181,27 @@ export default function SetupPage() {
           {/* チームA */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+              background: '#ffffff',
               padding: 'clamp(1rem, 2.5vw, 1.5rem)',
               borderRadius: '16px',
-              border: '2px solid #dc262640',
-              boxShadow: '0 8px 24px rgba(220, 38, 38, 0.2)',
+              border: '2px solid #e9456020',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
             }}
           >
             <h2
               style={{
-                color: '#dc2626',
+                color: '#e94560',
                 fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
                 fontWeight: 'bold',
                 marginBottom: '1rem',
                 textAlign: 'center',
-                textShadow: '0 2px 12px rgba(220, 38, 38, 0.4)',
               }}
             >
               チームA
             </h2>
             <label
               style={{
-                color: '#e0e0e0',
+                color: '#374151',
                 fontSize: 'clamp(0.85rem, 1.8vw, 0.95rem)',
                 fontWeight: 'bold',
                 marginBottom: '0.5rem',
@@ -225,10 +221,10 @@ export default function SetupPage() {
                 width: '100%',
                 padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
                 marginBottom: '1rem',
-                background: '#0a0a0a',
-                border: '2px solid #2a2a3e',
+                background: '#ffffff',
+                border: '1px solid #d1d5db',
                 borderRadius: '8px',
-                color: 'white',
+                color: '#1f2937',
                 fontSize: 'clamp(0.85rem, 1.8vw, 0.95rem)',
                 transition: 'all 0.3s ease',
                 outline: 'none',
@@ -236,7 +232,7 @@ export default function SetupPage() {
             />
             <h3
               style={{
-                color: '#aaa',
+                color: '#6b7280',
                 fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                 fontWeight: 'bold',
                 marginBottom: '0.75rem',
@@ -257,10 +253,10 @@ export default function SetupPage() {
                   width: '100%',
                   padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
                   marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
-                  background: '#0a0a0a',
-                  border: '2px solid #2a2a3e',
+                  background: '#ffffff',
+                  border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  color: 'white',
+                  color: '#1f2937',
                   fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
                   transition: 'all 0.3s ease',
                   outline: 'none',
@@ -272,11 +268,11 @@ export default function SetupPage() {
           {/* チームB */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+              background: '#ffffff',
               padding: 'clamp(1rem, 2.5vw, 1.5rem)',
               borderRadius: '16px',
-              border: '2px solid #4ade8040',
-              boxShadow: '0 8px 24px rgba(74, 222, 128, 0.2)',
+              border: '2px solid #4ade8020',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
             }}
           >
             <h2
@@ -286,14 +282,13 @@ export default function SetupPage() {
                 fontWeight: 'bold',
                 marginBottom: '1rem',
                 textAlign: 'center',
-                textShadow: '0 2px 12px rgba(74, 222, 128, 0.4)',
               }}
             >
               チームB
             </h2>
             <label
               style={{
-                color: '#e0e0e0',
+                color: '#374151',
                 fontSize: 'clamp(0.85rem, 1.8vw, 0.95rem)',
                 fontWeight: 'bold',
                 marginBottom: '0.5rem',
@@ -313,10 +308,10 @@ export default function SetupPage() {
                 width: '100%',
                 padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
                 marginBottom: '1rem',
-                background: '#0a0a0a',
-                border: '2px solid #2a2a3e',
+                background: '#ffffff',
+                border: '1px solid #d1d5db',
                 borderRadius: '8px',
-                color: 'white',
+                color: '#1f2937',
                 fontSize: 'clamp(0.85rem, 1.8vw, 0.95rem)',
                 transition: 'all 0.3s ease',
                 outline: 'none',
@@ -324,7 +319,7 @@ export default function SetupPage() {
             />
             <h3
               style={{
-                color: '#aaa',
+                color: '#6b7280',
                 fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                 fontWeight: 'bold',
                 marginBottom: '0.75rem',
@@ -345,10 +340,10 @@ export default function SetupPage() {
                   width: '100%',
                   padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
                   marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
-                  background: '#0a0a0a',
-                  border: '2px solid #2a2a3e',
+                  background: '#ffffff',
+                  border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  color: 'white',
+                  color: '#1f2937',
                   fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
                   transition: 'all 0.3s ease',
                   outline: 'none',
@@ -361,7 +356,7 @@ export default function SetupPage() {
         <div style={{ marginBottom: 'clamp(1.5rem, 3vw, 2rem)' }}>
           <label
             style={{
-              color: '#e0e0e0',
+              color: '#374151',
               fontSize: 'clamp(0.9rem, 2vw, 1rem)',
               fontWeight: 'bold',
               marginBottom: '0.5rem',
@@ -377,21 +372,21 @@ export default function SetupPage() {
               display: 'block',
               width: '100%',
               padding: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-              background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
-              border: '2px solid #2a2a3e',
+              background: '#ffffff',
+              border: '1px solid #d1d5db',
               borderRadius: '10px',
-              color: 'white',
+              color: '#1f2937',
               fontSize: 'clamp(0.9rem, 2vw, 1rem)',
               transition: 'all 0.3s ease',
               outline: 'none',
               cursor: 'pointer',
             }}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#4ade80'
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(74, 222, 128, 0.3)'
+              e.currentTarget.style.borderColor = '#10b981'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)'
             }}
             onBlur={(e) => {
-              e.currentTarget.style.borderColor = '#2a2a3e'
+              e.currentTarget.style.borderColor = '#d1d5db'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
@@ -410,27 +405,27 @@ export default function SetupPage() {
             fontWeight: 'bold',
             cursor: loading ? 'not-allowed' : 'pointer',
             background: loading
-              ? 'linear-gradient(135deg, #666 0%, #444 100%)'
-              : 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+              ? '#9ca3af'
+              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             color: 'white',
             border: 'none',
             borderRadius: '12px',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: loading
               ? 'none'
-              : '0 8px 24px rgba(74, 222, 128, 0.4)',
+              : '0 4px 12px rgba(16, 185, 129, 0.3)',
             letterSpacing: '0.05em',
           }}
           onMouseEnter={(e) => {
             if (!loading) {
               e.currentTarget.style.transform = 'translateY(-2px)'
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(74, 222, 128, 0.6)'
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)'
             }
           }}
           onMouseLeave={(e) => {
             if (!loading) {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.4)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)'
             }
           }}
         >
@@ -452,8 +447,8 @@ export default function SetupPage() {
 
           .team-input:focus,
           .player-input:focus {
-            border-color: #4ade80 !important;
-            box-shadow: 0 0 20px rgba(74, 222, 128, 0.3) !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
           }
         `}</style>
       </div>

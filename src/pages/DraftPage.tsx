@@ -186,27 +186,30 @@ export default function DraftPage() {
           }
         }
 
-        const newTurn = prevState.currentTurn + 1
+        // 新しいBAN進行ロジック：仮確定方式（3回選択 → 確定ボタン待ち）
+        const newBanCount = prevState.currentBanCount + 1
 
-        // BANフェーズ完了判定（各チーム3体ずつ = 合計6ターン）
-        const isBanComplete = newTurn >= 6
-
+        // 3回選択完了したら仮確定状態（自動遷移しない）
         const newState = {
           ...prevState,
           bans: newBans,
-          currentTurn: isBanComplete ? 0 : newTurn, // BAN完了時はターンリセット
-          phase: (isBanComplete ? 'pick' : 'ban') as 'ban' | 'pick', // BAN完了時はPICKフェーズへ
+          currentBanCount: newBanCount,
           updatedAt: new Date().toISOString(),
         }
 
         // デバッグ：累積BAN数を確認
         const totalBanned = getBannedPokemon(newState).length
         const banAction = pendingPick === null ? 'SKIP' : pendingPick
-        console.log(
-          `[DraftPage] Confirming BAN: ${banAction} (${
-            isBanComplete ? 'BAN完了 → PICK移行' : `BAN ${newTurn}/6`
-          }) | 累積BAN数: ${totalBanned}`
-        )
+
+        if (newBanCount === 3) {
+          console.log(
+            `[DraftPage] Tentative BAN confirmation: ${banAction} | Team ${pickingTeam}: ${newBanCount}/3 | 仮確定 → 確定ボタン待ち | 累積BAN数: ${totalBanned}`
+          )
+        } else {
+          console.log(
+            `[DraftPage] Confirming BAN: ${banAction} | Team ${pickingTeam}: ${newBanCount}/3 | 累積BAN数: ${totalBanned}`
+          )
+        }
 
         // Supabaseに保存（非同期だが待たない）
         saveDraftState(newState).catch((error) => {
@@ -277,6 +280,174 @@ export default function DraftPage() {
     setPendingPick(null)
   }
 
+  // 仮確定中のBANを取り消すハンドラー
+  const handleCancelBan = (banIndex: number) => {
+    // 🔒 読み取り専用モードでは何もしない
+    if (isReadOnly) {
+      console.warn('[DraftPage] Read-only mode: BAN cancellation disabled')
+      return
+    }
+
+    setState((prevState) => {
+      // prevStateがnullの場合は何もしない
+      if (!prevState) return prevState
+
+      // BANフェーズ中でない場合は何もしない
+      if (prevState.phase !== 'ban') {
+        console.warn('[DraftPage] Not in BAN phase')
+        return prevState
+      }
+
+      const { currentMatch, currentBanTeam } = prevState
+
+      // 現在のチームが確定済みの場合は取り消し不可
+      let isConfirmed = false
+      if (currentMatch === 1) {
+        isConfirmed = prevState.banConfirmed.match1[currentBanTeam!]
+      } else if (currentMatch === 2) {
+        isConfirmed = prevState.banConfirmed.match2[currentBanTeam!]
+      } else if (currentMatch === 3) {
+        isConfirmed = prevState.banConfirmed.match3[currentBanTeam!]
+      }
+
+      if (isConfirmed) {
+        console.warn('[DraftPage] BAN already confirmed, cannot cancel')
+        return prevState
+      }
+
+      // BAN配列から指定されたインデックスの要素を削除
+      const newBans = { ...prevState.bans }
+      if (currentMatch === 1) {
+        const currentBans = [...newBans.match1[currentBanTeam!]]
+        currentBans.splice(banIndex, 1)
+        newBans.match1 = {
+          ...newBans.match1,
+          [currentBanTeam!]: currentBans,
+        }
+      } else if (currentMatch === 2) {
+        const currentBans = [...newBans.match2[currentBanTeam!]]
+        currentBans.splice(banIndex, 1)
+        newBans.match2 = {
+          ...newBans.match2,
+          [currentBanTeam!]: currentBans,
+        }
+      } else if (currentMatch === 3) {
+        const currentBans = [...newBans.match3[currentBanTeam!]]
+        currentBans.splice(banIndex, 1)
+        newBans.match3 = {
+          ...newBans.match3,
+          [currentBanTeam!]: currentBans,
+        }
+      }
+
+      const newState = {
+        ...prevState,
+        bans: newBans,
+        currentBanCount: prevState.currentBanCount - 1,
+        updatedAt: new Date().toISOString(),
+      }
+
+      console.log(
+        `[DraftPage] Cancelled BAN at index ${banIndex} | Team ${currentBanTeam}: ${newState.currentBanCount}/3`
+      )
+
+      // Supabaseに保存（非同期だが待たない）
+      saveDraftState(newState).catch((error) => {
+        console.error('Failed to save draft state after BAN cancellation:', error)
+      })
+
+      return newState
+    })
+  }
+
+  // BANを最終確定するハンドラー（仮確定 → 最終確定）
+  const handleConfirmBan = () => {
+    // 🔒 読み取り専用モードでは何もしない
+    if (isReadOnly) {
+      console.warn('[DraftPage] Read-only mode: BAN confirmation disabled')
+      return
+    }
+
+    setState((prevState) => {
+      // prevStateがnullの場合は何もしない
+      if (!prevState) return prevState
+
+      // BANフェーズ中でない場合は何もしない
+      if (prevState.phase !== 'ban') {
+        console.warn('[DraftPage] Not in BAN phase')
+        return prevState
+      }
+
+      // 3回BAN選択されていない場合は何もしない
+      if (prevState.currentBanCount !== 3) {
+        console.warn('[DraftPage] BAN count is not 3, cannot confirm')
+        return prevState
+      }
+
+      const { currentMatch, currentBanTeam } = prevState
+
+      // 現在のチームのBAN確定フラグを立てる
+      const newBanConfirmed = { ...prevState.banConfirmed }
+      if (currentMatch === 1) {
+        newBanConfirmed.match1 = {
+          ...newBanConfirmed.match1,
+          [currentBanTeam!]: true,
+        }
+      } else if (currentMatch === 2) {
+        newBanConfirmed.match2 = {
+          ...newBanConfirmed.match2,
+          [currentBanTeam!]: true,
+        }
+      } else if (currentMatch === 3) {
+        newBanConfirmed.match3 = {
+          ...newBanConfirmed.match3,
+          [currentBanTeam!]: true,
+        }
+      }
+
+      // 次のチームまたは次フェーズへの遷移を決定
+      // 試合ごとの先行チーム情報を使用
+      const firstPickTeam = prevState.firstPickByMatch[currentMatch]
+      const secondPickTeam = firstPickTeam === 'A' ? 'B' : 'A'
+
+      let nextBanTeam = currentBanTeam
+      let nextBanCount = prevState.currentBanCount
+      let nextPhase: 'ban' | 'pick' = 'ban'
+      let nextTurn = prevState.currentTurn
+
+      if (currentBanTeam === firstPickTeam) {
+        // 先行チームが確定 → 後攻チームに移行
+        nextBanTeam = secondPickTeam
+        nextBanCount = 0
+        console.log(`[DraftPage] Match ${currentMatch}: Team ${firstPickTeam} BAN confirmed → Switching to Team ${secondPickTeam}`)
+      } else if (currentBanTeam === secondPickTeam) {
+        // 後攻チームが確定 → PICKフェーズに移行
+        nextPhase = 'pick'
+        nextBanTeam = null
+        nextBanCount = 0
+        nextTurn = 0
+        console.log(`[DraftPage] Match ${currentMatch}: Team ${secondPickTeam} BAN confirmed → Transitioning to PICK phase`)
+      }
+
+      const newState = {
+        ...prevState,
+        banConfirmed: newBanConfirmed,
+        currentBanTeam: nextBanTeam,
+        currentBanCount: nextBanCount,
+        phase: nextPhase,
+        currentTurn: nextTurn,
+        updatedAt: new Date().toISOString(),
+      }
+
+      // Supabaseに保存（非同期だが待たない）
+      saveDraftState(newState).catch((error) => {
+        console.error('Failed to save draft state after BAN confirmation:', error)
+      })
+
+      return newState
+    })
+  }
+
   // 次の試合へ進むハンドラー
   const handleGoToNextMatch = () => {
     // 🔒 読み取り専用モードでは何もしない
@@ -294,11 +465,17 @@ export default function DraftPage() {
         return prevState
       }
 
+      // 次の試合の先攻チームを取得
+      const nextMatch = (prevState.currentMatch + 1) as 1 | 2 | 3
+      const nextMatchFirstPick = prevState.firstPickByMatch[nextMatch]
+
       const newState = {
         ...prevState,
-        currentMatch: (prevState.currentMatch + 1) as 1 | 2 | 3,
+        currentMatch: nextMatch,
         currentTurn: 0,
         phase: 'ban' as 'ban' | 'pick', // 次の試合はBANフェーズから開始
+        currentBanTeam: nextMatchFirstPick, // 次の試合の先攻チームがBAN開始
+        currentBanCount: 0, // BAN回数をリセット
         updatedAt: new Date().toISOString(),
       }
 
@@ -322,8 +499,8 @@ export default function DraftPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
-          color: 'white',
+          background: 'rgba(255, 255, 255, 0.87)',
+          color: '#1f2937',
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -332,15 +509,12 @@ export default function DraftPage() {
               fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
               marginBottom: '1rem',
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              color: '#059669',
             }}
           >
             読み込み中...
           </div>
-          <div style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#aaa' }}>
+          <div style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#6b7280' }}>
             DraftStateを取得しています
           </div>
         </div>
@@ -375,13 +549,33 @@ export default function DraftPage() {
       ? state.bans.match2.B
       : state.bans.match3.B
 
+  // BAN取り消し可能かどうかを判定（仮確定中のみ）
+  const getBanConfirmedForTeam = (team: 'A' | 'B'): boolean => {
+    if (state.currentMatch === 1) return state.banConfirmed.match1[team]
+    if (state.currentMatch === 2) return state.banConfirmed.match2[team]
+    if (state.currentMatch === 3) return state.banConfirmed.match3[team]
+    return false
+  }
+
+  const isBanCancellableA =
+    state.phase === 'ban' &&
+    state.currentBanTeam === 'A' &&
+    !getBanConfirmedForTeam('A') &&
+    !isReadOnly
+
+  const isBanCancellableB =
+    state.phase === 'ban' &&
+    state.currentBanTeam === 'B' &&
+    !getBanConfirmedForTeam('B') &&
+    !isReadOnly
+
   return (
     <div
       style={{
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 50%, #16213e 100%)',
+        background: 'rgba(255, 255, 255, 0.87)',
         overflow: 'hidden',
       }}
     >
@@ -389,11 +583,11 @@ export default function DraftPage() {
       <header
         style={{
           flexShrink: 0,
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          color: 'white',
+          background: '#ffffff',
+          color: '#1f2937',
           padding: 'clamp(0.5rem, 1vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
-          borderBottom: '2px solid #2a2a3e',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+          borderBottom: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
         }}
       >
         <div
@@ -411,10 +605,7 @@ export default function DraftPage() {
                 margin: 0,
                 fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                 fontWeight: 'bold',
-                background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: '#111827',
                 letterSpacing: '0.05em',
               }}
             >
@@ -424,13 +615,13 @@ export default function DraftPage() {
                   style={{
                     marginLeft: 'clamp(0.3rem, 0.8vw, 0.5rem)',
                     fontSize: 'clamp(0.55rem, 1.2vw, 0.7rem)',
-                    color: '#fbbf24',
-                    backgroundColor: '#78350f',
+                    color: '#92400e',
+                    backgroundColor: '#fef3c7',
                     padding: '0.15rem 0.4rem',
                     borderRadius: '4px',
                     fontWeight: 'bold',
-                    border: '1px solid #fbbf2440',
-                    boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)',
+                    border: '1px solid #fbbf24',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                   }}
                 >
                   👁️ 観戦モード
@@ -441,7 +632,7 @@ export default function DraftPage() {
               style={{
                 fontSize: 'clamp(0.6rem, 1.3vw, 0.75rem)',
                 marginTop: 'clamp(0.2rem, 0.6vw, 0.3rem)',
-                color: '#aaa',
+                color: '#6b7280',
                 fontWeight: '500',
                 display: 'flex',
                 alignItems: 'center',
@@ -454,17 +645,15 @@ export default function DraftPage() {
                 style={{
                   background:
                     state.phase === 'ban'
-                      ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
-                      : 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                  color: 'white',
+                      ? '#fee2e2'
+                      : '#d1fae5',
+                  color: state.phase === 'ban' ? '#991b1b' : '#065f46',
                   padding: '0.15rem 0.35rem',
                   borderRadius: '4px',
                   fontSize: 'clamp(0.55rem, 1.2vw, 0.65rem)',
                   fontWeight: 'bold',
-                  boxShadow:
-                    state.phase === 'ban'
-                      ? '0 2px 8px rgba(220, 38, 38, 0.4)'
-                      : '0 2px 8px rgba(74, 222, 128, 0.4)',
+                  border: state.phase === 'ban' ? '1px solid #dc2626' : '1px solid #10b981',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 }}
               >
                 {state.phase === 'ban' ? '🚫 BAN' : '✓ PICK'}
@@ -472,7 +661,7 @@ export default function DraftPage() {
               <span>ターン {state.currentTurn}</span>
               <span
                 style={{
-                  color: '#666',
+                  color: '#9ca3af',
                   fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
                 }}
               >
@@ -487,35 +676,37 @@ export default function DraftPage() {
               style={{
                 fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
                 textAlign: 'right',
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%)',
+                background: '#f9fafb',
                 padding: 'clamp(0.3rem, 1vw, 0.5rem)',
                 borderRadius: '6px',
-                border: '1px solid #2a2a3e',
+                border: '1px solid #e5e7eb',
               }}
             >
-              <div style={{ marginBottom: '0.3rem', color: '#4ade80' }}>
+              <div style={{ marginBottom: '0.3rem', color: '#059669' }}>
                 🔗 運営URL:{' '}
                 <code
                   style={{
-                    backgroundColor: '#0a0a0a',
+                    backgroundColor: '#ffffff',
                     padding: '0.15rem 0.3rem',
                     borderRadius: '3px',
                     fontSize: '0.85em',
-                    border: '1px solid #2a2a3e',
+                    border: '1px solid #d1d5db',
+                    color: '#374151',
                   }}
                 >
                   https://unite-draft-dun.vercel.app/draft/{draftId}/admin
                 </code>
               </div>
-              <div style={{ color: '#fbbf24' }}>
+              <div style={{ color: '#d97706' }}>
                 👁️ 観戦URL:{' '}
                 <code
                   style={{
-                    backgroundColor: '#0a0a0a',
+                    backgroundColor: '#ffffff',
                     padding: '0.15rem 0.3rem',
                     borderRadius: '3px',
                     fontSize: '0.85em',
-                    border: '1px solid #2a2a3e',
+                    border: '1px solid #d1d5db',
+                    color: '#374151',
                   }}
                 >
                   https://unite-draft-dun.vercel.app/draft/{draftId}/view
@@ -538,7 +729,7 @@ export default function DraftPage() {
         <div className="draft-grid-layout">
           {/* チームA */}
           <div style={{ gridArea: 'teamA' }}>
-            <div style={{ width: '80%', margin: '0 auto' }}>
+            <div style={{ width: '100%' }}>
               <PlayerCardList
                 teamName={state.teams.A.name}
                 players={state.teams.A.players}
@@ -546,6 +737,8 @@ export default function DraftPage() {
                 teamColor="#e94560"
                 isActive={currentPickingTeam === 'A'}
                 banEntries={currentMatchBanEntriesA}
+                isBanCancellable={isBanCancellableA}
+                onCancelBan={handleCancelBan}
               />
             </div>
           </div>
@@ -554,14 +747,14 @@ export default function DraftPage() {
           <div
             style={{
               gridArea: 'center',
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+              background: '#ffffff',
               padding: 'clamp(1rem, 2vw, 1.5rem)',
               borderRadius: 'clamp(12px, 2vw, 16px)',
-              border: '2px solid #2a2a3e',
+              border: '1px solid #e5e7eb',
               display: 'flex',
               flexDirection: 'column',
               gap: 'clamp(1rem, 2vw, 1.5rem)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
             }}
           >
             <PokemonGrid
@@ -576,23 +769,19 @@ export default function DraftPage() {
             {pendingPick !== undefined && !isReadOnly && !matchComplete && (
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                  background: '#f9fafb',
                   padding: 'clamp(0.6rem, 1.5vw, 1rem)',
                   borderRadius: '8px',
                   border: `1.5px solid ${
-                    state.phase === 'ban' ? '#ef444460' : '#fbbf2460'
+                    state.phase === 'ban' ? '#dc2626' : '#f59e0b'
                   }`,
-                  boxShadow: `0 4px 16px ${
-                    state.phase === 'ban'
-                      ? 'rgba(239, 68, 68, 0.3)'
-                      : 'rgba(251, 191, 36, 0.3)'
-                  }`,
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
                   textAlign: 'center',
                 }}
               >
                 <div
                   style={{
-                    color: state.phase === 'ban' ? '#ef4444' : '#fbbf24',
+                    color: state.phase === 'ban' ? '#dc2626' : '#d97706',
                     marginBottom: 'clamp(0.5rem, 1.3vw, 0.75rem)',
                     fontSize: 'clamp(0.7rem, 1.5vw, 0.85rem)',
                     fontWeight: 'bold',
@@ -618,7 +807,7 @@ export default function DraftPage() {
                   <button
                     onClick={handleConfirmPick}
                     style={{
-                      background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                      background: '#10b981',
                       color: 'white',
                       border: 'none',
                       padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
@@ -626,16 +815,18 @@ export default function DraftPage() {
                       fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 12px rgba(74, 222, 128, 0.4)',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(74, 222, 128, 0.6)'
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#059669'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(74, 222, 128, 0.4)'
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#10b981'
                     }}
                   >
                     ✓ 確定
@@ -643,7 +834,7 @@ export default function DraftPage() {
                   <button
                     onClick={handleCancelPick}
                     style={{
-                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      background: '#ef4444',
                       color: 'white',
                       border: 'none',
                       padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
@@ -651,16 +842,18 @@ export default function DraftPage() {
                       fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 12px rgba(239, 68, 68, 0.4)',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.6)'
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#dc2626'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = '0 2px 12px rgba(239, 68, 68, 0.4)'
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#ef4444'
                     }}
                   >
                     ✕ キャンセル
@@ -669,24 +862,25 @@ export default function DraftPage() {
               </div>
             )}
 
-            {/* BANスキップボタン（BANフェーズ中で何も選択していない時） */}
+            {/* BANスキップボタン（BANフェーズ中で何も選択していない時、かつ3枠未満） */}
             {state.phase === 'ban' &&
               !pendingPick &&
+              state.currentBanCount < 3 &&
               !isReadOnly &&
               !matchComplete && (
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                    background: '#f9fafb',
                     padding: 'clamp(0.6rem, 1.5vw, 1rem)',
                     borderRadius: '8px',
-                    border: '1.5px solid #6b728040',
-                    boxShadow: '0 4px 16px rgba(107, 114, 128, 0.2)',
+                    border: '1.5px solid #d1d5db',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
                     textAlign: 'center',
                   }}
                 >
                   <div
                     style={{
-                      color: '#9ca3af',
+                      color: '#6b7280',
                       marginBottom: 'clamp(0.5rem, 1.3vw, 0.75rem)',
                       fontSize: 'clamp(0.65rem, 1.4vw, 0.75rem)',
                     }}
@@ -696,7 +890,7 @@ export default function DraftPage() {
                   <button
                     onClick={handleSkipBan}
                     style={{
-                      background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                      background: '#6b7280',
                       color: 'white',
                       border: 'none',
                       padding: 'clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)',
@@ -704,21 +898,86 @@ export default function DraftPage() {
                       fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 12px rgba(107, 114, 128, 0.4)',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#4b5563'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#6b7280'
+                    }}
+                  >
+                    ⏭️ このBAN枠をスキップ
+                  </button>
+                </div>
+              )}
+
+            {/* BAN確定ボタン（3枠すべて選択完了時） */}
+            {state.phase === 'ban' &&
+              !pendingPick &&
+              state.currentBanCount === 3 &&
+              !isReadOnly &&
+              !matchComplete && (
+                <div
+                  style={{
+                    background: '#fef3c7',
+                    padding: 'clamp(1rem, 2vw, 1.5rem)',
+                    borderRadius: '12px',
+                    border: '2px solid #f59e0b',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      color: '#d97706',
+                      marginBottom: 'clamp(0.75rem, 1.5vw, 1rem)',
+                      fontSize: 'clamp(0.85rem, 1.8vw, 1rem)',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ⚠️ チーム{state.currentBanTeam}のBAN3枠すべて選択完了（仮確定）
+                  </div>
+                  <div
+                    style={{
+                      color: '#92400e',
+                      marginBottom: 'clamp(0.75rem, 1.5vw, 1rem)',
+                      fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)',
+                    }}
+                  >
+                    確定ボタンを押すと次に進みます。修正する場合はBAN枠をクリックして取り消せます。
+                  </div>
+                  <button
+                    onClick={handleConfirmBan}
+                    style={{
+                      background: '#f59e0b',
+                      color: 'white',
+                      border: 'none',
+                      padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
+                      borderRadius: '10px',
+                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                       transition: 'all 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow =
-                        '0 6px 18px rgba(107, 114, 128, 0.6)'
+                      e.currentTarget.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)'
+                      e.currentTarget.style.background = '#d97706'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow =
-                        '0 2px 12px rgba(107, 114, 128, 0.4)'
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.background = '#f59e0b'
                     }}
                   >
-                    ⏭️ このBAN枠をスキップ
+                    🔒 BANを確定する
                   </button>
                 </div>
               )}
@@ -727,11 +986,11 @@ export default function DraftPage() {
             {matchComplete && !isReadOnly && (
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #0f1419 0%, #1a1a2e 100%)',
+                  background: '#f0fdf4',
                   padding: 'clamp(1.25rem, 3vw, 1.5rem)',
                   borderRadius: '12px',
-                  border: '2px solid #4ade8060',
-                  boxShadow: '0 8px 24px rgba(74, 222, 128, 0.3)',
+                  border: '2px solid #10b981',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
                   textAlign: 'center',
                 }}
               >
@@ -740,10 +999,7 @@ export default function DraftPage() {
                   <div>
                     <h2
                       style={{
-                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
+                        color: '#059669',
                         margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
                         fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
                         fontWeight: 'bold',
@@ -753,7 +1009,7 @@ export default function DraftPage() {
                     </h2>
                     <p
                       style={{
-                        color: '#aaa',
+                        color: '#6b7280',
                         margin: '0 0 clamp(1rem, 2vw, 1.5rem) 0',
                         fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                       }}
@@ -765,23 +1021,25 @@ export default function DraftPage() {
                         to={`/draft/${draftId}/summary`}
                         style={{
                           display: 'inline-block',
-                          background: 'linear-gradient(135deg, #4ade80 0%, #3b82f6 100%)',
+                          background: '#10b981',
                           color: 'white',
                           textDecoration: 'none',
                           padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
                           borderRadius: '10px',
                           fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                           fontWeight: 'bold',
-                          boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                           transition: 'all 0.3s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
+                          e.currentTarget.style.transform = 'translateY(-1px)'
+                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                          e.currentTarget.style.background = '#059669'
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
+                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                          e.currentTarget.style.background = '#10b981'
                         }}
                       >
                         サマリーを見る
@@ -793,10 +1051,7 @@ export default function DraftPage() {
                   <div>
                     <h3
                       style={{
-                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
+                        color: '#059669',
                         margin: '0 0 clamp(0.75rem, 2vw, 1rem) 0',
                         fontSize: 'clamp(1.1rem, 2.5vw, 1.2rem)',
                         fontWeight: 'bold',
@@ -807,7 +1062,7 @@ export default function DraftPage() {
                     <button
                       onClick={handleGoToNextMatch}
                       style={{
-                        background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)',
+                        background: '#10b981',
                         color: 'white',
                         border: 'none',
                         padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)',
@@ -815,16 +1070,18 @@ export default function DraftPage() {
                         fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         fontWeight: 'bold',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 16px rgba(74, 222, 128, 0.4)',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                         transition: 'all 0.3s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)'
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(74, 222, 128, 0.6)'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        e.currentTarget.style.background = '#059669'
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)'
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.4)'
+                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)'
+                        e.currentTarget.style.background = '#10b981'
                       }}
                     >
                       次の試合へ進む（試合 {state.currentMatch + 1}）
@@ -837,7 +1094,7 @@ export default function DraftPage() {
 
           {/* チームB */}
           <div style={{ gridArea: 'teamB' }}>
-            <div style={{ width: '80%', margin: '0 auto' }}>
+            <div style={{ width: '100%' }}>
               <PlayerCardList
                 teamName={state.teams.B.name}
                 players={state.teams.B.players}
@@ -845,6 +1102,8 @@ export default function DraftPage() {
                 teamColor="#4ade80"
                 isActive={currentPickingTeam === 'B'}
                 banEntries={currentMatchBanEntriesB}
+                isBanCancellable={isBanCancellableB}
+                onCancelBan={handleCancelBan}
               />
             </div>
           </div>
@@ -855,13 +1114,13 @@ export default function DraftPage() {
       <footer
         style={{
           flexShrink: 0,
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          color: '#aaa',
+          background: '#ffffff',
+          color: '#9ca3af',
           padding: 'clamp(0.3rem, 1vw, 0.5rem) clamp(0.5rem, 2vw, 1rem)',
-          borderTop: '2px solid #2a2a3e',
+          borderTop: '1px solid #e5e7eb',
           textAlign: 'center',
           fontSize: 'clamp(0.6rem, 1.2vw, 0.7rem)',
-          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.3)',
+          boxShadow: '0 -1px 3px rgba(0, 0, 0, 0.05)',
         }}
       >
         最終更新: {new Date(state.updatedAt).toLocaleString('ja-JP')}
@@ -871,32 +1130,20 @@ export default function DraftPage() {
       <style>{`
         .draft-grid-layout {
           display: grid;
-          gap: clamp(1rem, 2vw, 1.5rem);
+          grid-template-rows: auto 1fr;
+          grid-template-columns: 1fr 1fr;
+          grid-template-areas:
+            "center center"
+            "teamA teamB";
+          gap: clamp(0.75rem, 1.5vw, 1rem);
           max-width: 1400px;
           margin: 0 auto;
         }
 
-        /* PC: 大画面（1024px以上） - 3カラム */
-        @media (min-width: 1024px) {
+        /* 全画面で統一レイアウト: 上段にPokemonGrid、下段にチーム並列 */
+        @media (min-width: 768px) {
           .draft-grid-layout {
-            grid-template-columns: 1fr 3fr 1fr;
-            grid-template-areas: "teamA center teamB";
-          }
-        }
-
-        /* タブレット: 中画面（768px-1023px） - 2カラム */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .draft-grid-layout {
-            grid-template-columns: 1fr 1fr;
-            grid-template-areas:
-              "teamA teamB"
-              "center center";
-          }
-        }
-
-        /* スマホ: 小画面（768px未満） - Pokemon grid on top, teams side-by-side */
-        @media (max-width: 767px) {
-          .draft-grid-layout {
+            grid-template-rows: auto 1fr;
             grid-template-columns: 1fr 1fr;
             grid-template-areas:
               "center center"
@@ -904,11 +1151,14 @@ export default function DraftPage() {
           }
         }
 
-        /* スマホ横持ち（480px以上、768px未満、横長） */
-        @media (min-width: 480px) and (max-width: 767px) and (orientation: landscape) {
+        /* スマホ: 小画面（768px未満） */
+        @media (max-width: 767px) {
           .draft-grid-layout {
-            grid-template-columns: 1fr 1.5fr 1fr;
-            grid-template-areas: "teamA center teamB";
+            grid-template-rows: auto 1fr;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas:
+              "center center"
+              "teamA teamB";
           }
         }
       `}</style>
