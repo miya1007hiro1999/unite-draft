@@ -4,17 +4,21 @@ import type { DraftState, Team } from '../types/draft'
  * BANされたポケモンID一覧を取得（累積）
  *
  * 確定仕様：
+ * - グローバルBANは全試合で適用される
  * - BANは試合ごとに累積（次の試合に進んでも解除されない）
  * - PICKされたポケモンも以降の試合では使用不可
- * - 使用不可ポケモン = 過去すべてのBAN + PICKの累積
+ * - 使用不可ポケモン = グローバルBAN + 過去すべてのBAN + PICKの累積
  * - null（スキップ）は除外する
  *
  * @param state - 現在のDraftState
  * @returns BANされたポケモンIDの配列（重複なし、nullを除外）
  */
 export function getBannedPokemon(state: DraftState): string[] {
-  const { currentMatch, picks, bans } = state
+  const { currentMatch, picks, bans, globalBans } = state
   const bannedList: string[] = []
+
+  // グローバルBANを常に含める（全試合共通）
+  bannedList.push(...globalBans)
 
   // 第1試合中：match1のBANのみ（nullを除外）
   if (currentMatch === 1) {
@@ -151,16 +155,25 @@ export function getCurrentBanningTeam(state: DraftState): Team {
 /**
  * BANフェーズが完了したかどうかを判定
  *
- * 条件：各チーム3体ずつBAN完了（合計6体）
+ * 条件：両チームとも最終確定済み
  *
  * @param state - 現在のDraftState
  * @returns BANフェーズ完了ならtrue
  */
 export function isBanPhaseComplete(state: DraftState): boolean {
-  const teamABans = getCurrentMatchBansByTeam(state, 'A')
-  const teamBBans = getCurrentMatchBansByTeam(state, 'B')
+  const { currentMatch, banConfirmed } = state
 
-  return teamABans.length >= 3 && teamBBans.length >= 3
+  // グローバルBANフェーズの場合
+  if (currentMatch === 0) {
+    return state.globalBanConfirmed
+  }
+
+  // 通常試合の場合：両チームが確定済みならBAN完了
+  if (currentMatch === 1) return banConfirmed.match1.A && banConfirmed.match1.B
+  if (currentMatch === 2) return banConfirmed.match2.A && banConfirmed.match2.B
+  if (currentMatch === 3) return banConfirmed.match3.A && banConfirmed.match3.B
+
+  return false
 }
 
 /**
@@ -205,15 +218,24 @@ export function getPickSequenceByMatch(
  * @returns 現在ピック中/BAN中のチーム（'A' | 'B'）
  */
 export function getCurrentPickingTeam(state: DraftState): Team {
-  // BANフェーズ中はcurrentBanTeamを返す（新しいチーム単位BAN方式）
+  // BANフェーズ中はcurrentBanTeamを返す
   if (state.phase === 'ban') {
-    // currentBanTeamがnullの場合は先攻チームをデフォルトとして返す
-    return state.currentBanTeam ?? state.firstPickByMatch[state.currentMatch]
+    // currentBanTeamがnullの場合（グローバルBAN等）はfallbackとして先行チームを返す
+    if (state.currentBanTeam) {
+      return state.currentBanTeam
+    }
+    // fallback: 先行チームを返す
+    const { currentMatch, firstPickByMatch } = state
+    if (currentMatch >= 1 && currentMatch <= 3) {
+      return firstPickByMatch[currentMatch as 1 | 2 | 3]
+    }
+    // match 0の場合はデフォルトでAを返す（本来は呼ばれないはず）
+    return 'A'
   }
 
   // PICKフェーズ中はピック中のチームを返す
   const { currentMatch, currentTurn, firstPickByMatch } = state
-  const pickSequence = getPickSequenceByMatch(currentMatch, firstPickByMatch)
+  const pickSequence = getPickSequenceByMatch(currentMatch as 1 | 2 | 3, firstPickByMatch)
 
   // currentTurnがシーケンス範囲外の場合は最後のチームを返す
   if (currentTurn >= pickSequence.length) {
@@ -241,7 +263,7 @@ export function getCurrentMatchPicks(state: DraftState, team: Team): string[] {
 /**
  * ポケモンが選択可能かどうかを判定
  *
- * BANフェーズとPICKフェーズで異なる条件を適用
+ * グローバルBAN、BANフェーズ、PICKフェーズで異なる条件を適用
  *
  * @param state - 現在のDraftState
  * @param pokemonId - ポケモンID
@@ -251,6 +273,31 @@ export function isPokemonSelectable(
   state: DraftState,
   pokemonId: string
 ): boolean {
+  // グローバルBANフェーズ（currentMatch === 0）
+  if (state.currentMatch === 0) {
+    // グローバルBAN中
+    if (state.phase === 'ban') {
+      // すでにグローバルBANされている
+      if (state.globalBans.includes(pokemonId)) {
+        return false
+      }
+
+      // グローバルBAN枠が埋まっている（最大16体）
+      if (state.globalBans.length >= 16) {
+        return false
+      }
+
+      return true
+    }
+    // グローバルBANフェーズでPICKフェーズに入ることはないが、安全のためfalse
+    return false
+  }
+
+  // 通常試合（currentMatch >= 1）：グローバルBANチェック
+  if (state.globalBans.includes(pokemonId)) {
+    return false
+  }
+
   const currentTeam = getCurrentPickingTeam(state)
 
   // BANフェーズ中
@@ -259,6 +306,13 @@ export function isPokemonSelectable(
     if (isBanPhaseComplete(state)) {
       return false
     }
+
+    const { currentMatch, banConfirmed } = state
+
+    // 現在のチームが既に確定済みの場合は選択不可
+    if (currentMatch === 1 && banConfirmed.match1[currentTeam]) return false
+    if (currentMatch === 2 && banConfirmed.match2[currentTeam]) return false
+    if (currentMatch === 3 && banConfirmed.match3[currentTeam]) return false
 
     const currentMatchBans = getCurrentMatchBans(state)
     const currentTeamBans = getCurrentMatchBansByTeam(state, currentTeam)
@@ -269,6 +323,8 @@ export function isPokemonSelectable(
     }
 
     // BAN枠が埋まっている（最大3体）
+    // 仮確定状態（3体選択済みだが未確定）でも、新規追加は不可
+    // 変更する場合は既存BANを削除してから追加する
     if (currentTeamBans.length >= 3) {
       return false
     }
@@ -287,7 +343,7 @@ export function isPokemonSelectable(
   const teamBPicks = getCurrentMatchPicks(state, 'B')
   const currentTeamPicks = getCurrentMatchPicks(state, currentTeam)
 
-  // BANされている
+  // BANされている（getBannedPokemonがglobalBansを含むので、ここで再チェック不要だが明示的に）
   if (bannedPokemon.includes(pokemonId)) {
     return false
   }

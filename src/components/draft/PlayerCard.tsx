@@ -108,7 +108,7 @@ export default function PlayerCard({
                 }}
               />
             </div>
-            <div
+            {/* <div
               style={{
                 background: `linear-gradient(90deg, transparent 0%, ${teamColor}15 50%, transparent 100%)`,
                 color: '#374151',
@@ -120,7 +120,7 @@ export default function PlayerCard({
               }}
             >
               {pokemon.name}
-            </div>
+            </div> */}
           </div>
         ) : (
           // 未ピック：空スロット

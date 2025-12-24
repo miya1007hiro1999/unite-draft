@@ -31,9 +31,9 @@ export default function PokemonCard({
     <div
       onClick={onClick}
       style={{
-        width: '80px',
-        minWidth: '80px',
-        maxWidth: '80px',
+        width: '55px',
+        minWidth: '55px',
+        maxWidth: '55px',
         background: isBanned
           ? '#f3f4f6'
           : '#ffffff',
@@ -96,8 +96,8 @@ export default function PokemonCard({
           src={getPokemonImage(pokemon.id)}
           alt={pokemon.name}
           style={{
-            width: 'clamp(28px, 3.5vw, 38px)',
-            height: 'clamp(28px, 3.5vw, 38px)',
+            width: '100%',
+            height: 'auto',
             borderRadius: '4px',
             objectFit: 'cover',
             boxShadow: isPickedInCurrentMatch
@@ -109,7 +109,7 @@ export default function PokemonCard({
       </div>
 
       {/* ポケモン名 */}
-      <div
+      {/* <div
         style={{
           width: '100%',
           color: isBanned ? '#9ca3af' : '#374151',
@@ -125,7 +125,7 @@ export default function PokemonCard({
         }}
       >
         {pokemon.name}
-      </div>
+      </div> */}
 
       {/* BANバッジ */}
       {isBanned && (

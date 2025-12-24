@@ -10,14 +10,16 @@ export type DraftState = {
     A: { name: string; players: string[] }
     B: { name: string; players: string[] }
   }
-  currentMatch: 1 | 2 | 3
+  currentMatch: 0 | 1 | 2 | 3 // 0 = グローバルBANフェーズ
   currentTurn: number
   phase: Phase // BANフェーズ or PICKフェーズ
-  // BANフェーズ専用の進行管理
-  currentBanTeam: Team | null // 現在BAN中のチーム（BANフェーズ外ではnull）
-  currentBanCount: number // 現在のチームが行ったBAN回数（0-3）
-  // BANの確定状態（試合・チームごと）
+  // グローバルBAN（全試合共通、最大16体）
+  globalBans: string[] // グローバルBANされたポケモンID
+  globalBanConfirmed: boolean // グローバルBANの最終確定フラグ
+  // 試合BAN専用の進行管理
+  currentBanTeam: Team | null // 現在BAN中のチーム（nullはグローバルBAN中 or BAN完了）
   banConfirmed: {
+    // 各試合・各チームのBAN最終確定フラグ
     match1: { A: boolean; B: boolean }
     match2: { A: boolean; B: boolean }
     match3: { A: boolean; B: boolean }

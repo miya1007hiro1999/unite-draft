@@ -94,6 +94,15 @@ export default function PokemonGrid({
     balance: 'バランス',
   }
 
+  // タイプごとの背景色定義（極薄、不透明度 0.06）
+  const typeBackgroundColors: Record<Pokemon['type'], string> = {
+    attack: 'rgba(229, 57, 53, 0.06)', // #E53935
+    speed: 'rgba(30, 136, 229, 0.06)', // #1E88E5
+    balance: 'rgba(142, 36, 170, 0.06)', // #8E24AA
+    defence: 'rgba(67, 160, 71, 0.06)', // #43A047
+    support: 'rgba(249, 168, 37, 0.06)', // #F9A825
+  }
+
   // フェーズに応じたタイトル
   const title = state.phase === 'ban' ? '🚫 BAN 選択' : '✓ ポケモン選択'
   const titleColor = state.phase === 'ban' ? '#dc2626' : '#059669'
@@ -147,7 +156,7 @@ export default function PokemonGrid({
         {typeOrder.map((type) => (
           <div key={type}>
             {/* type見出し */}
-            <div
+            {/* <div
               style={{
                 fontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
                 fontWeight: 'bold',
@@ -157,7 +166,7 @@ export default function PokemonGrid({
               }}
             >
               {typeLabels[type]}
-            </div>
+            </div> */}
             {/* ポケモンカードを横並び表示 */}
             <div
               style={{
@@ -165,6 +174,9 @@ export default function PokemonGrid({
                 flexDirection: 'row',
                 gap: '10px',
                 flexWrap: 'wrap',
+                backgroundColor: typeBackgroundColors[type],
+                padding: '6px',
+                borderRadius: '8px',
               }}
             >
               {pokemonByType[type].map((pokemon) => {

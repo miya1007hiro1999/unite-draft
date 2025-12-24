@@ -4,8 +4,8 @@ import type { BanEntry } from '../../types/draft'
 interface BanRowProps {
   teamColor: string
   banEntries: BanEntry[]
-  isCancellable?: boolean // 仮確定中で取り消し可能かどうか
-  onCancelBan?: (banIndex: number) => void // BAN取り消しハンドラー
+  isCancellable?: boolean // 削除可能かどうか
+  onCancelBan?: (banIndex: number) => void // 削除ハンドラー
 }
 
 export default function BanRow({
@@ -26,6 +26,7 @@ export default function BanRow({
     <div
       style={{
         marginBottom: 'clamp(0.2rem, 0.5vw, 0.3rem)',
+        width:'40%',
       }}
     >
       {/* BAN ヘッダー */}
@@ -55,7 +56,9 @@ export default function BanRow({
             entry={entry}
             teamColor={teamColor}
             isCancellable={isCancellable && entry !== undefined}
-            onCancel={onCancelBan ? () => onCancelBan(index) : undefined}
+            onCancel={
+              onCancelBan && entry !== undefined ? () => onCancelBan(index) : undefined
+            }
           />
         ))}
       </div>

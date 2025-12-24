@@ -27,11 +27,12 @@ export function createInitialDraftState(data: SetupData): DraftState {
         players: data.teamBPlayers,
       },
     },
-    currentMatch: 1,
+    currentMatch: 0, // グローバルBANフェーズから開始
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
-    currentBanTeam: data.firstPick, // 先攻チームがBAN開始
-    currentBanCount: 0, // BAN回数は0から
+    globalBans: [], // グローバルBAN（最大16体）
+    globalBanConfirmed: false, // グローバルBAN未確定
+    currentBanTeam: null, // グローバルBAN中はnull
     banConfirmed: {
       match1: { A: false, B: false },
       match2: { A: false, B: false },
@@ -76,11 +77,12 @@ export function createMockDraftState(): DraftState {
         players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
       },
     },
-    currentMatch: 1,
+    currentMatch: 1, // 試合1から開始（グローバルBAN完了済み想定）
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
-    currentBanTeam: 'A', // チームAがBAN開始
-    currentBanCount: 0, // BAN回数は0から
+    globalBans: [], // グローバルBAN（テスト用は空）
+    globalBanConfirmed: true, // グローバルBAN完了済み
+    currentBanTeam: 'A', // チームAのBAN中
     banConfirmed: {
       match1: { A: false, B: false },
       match2: { A: false, B: false },
@@ -127,11 +129,12 @@ export function createMockDraftStateMatch2(): DraftState {
     currentMatch: 2,
     currentTurn: 2,
     phase: 'pick', // PICKフェーズ
-    currentBanTeam: null, // PICKフェーズ中はnull
-    currentBanCount: 0, // PICKフェーズ中は0
+    globalBans: [], // グローバルBAN（テスト用は空）
+    globalBanConfirmed: true,
+    currentBanTeam: null, // BANフェーズ完了
     banConfirmed: {
-      match1: { A: true, B: true }, // 第1試合は確定済み
-      match2: { A: true, B: false }, // 第2試合は進行中
+      match1: { A: true, B: true },
+      match2: { A: true, B: true },
       match3: { A: false, B: false },
     },
     firstPickByMatch: {
@@ -156,8 +159,8 @@ export function createMockDraftStateMatch2(): DraftState {
         B: ['blastoise', 'venusaur', 'slowbro'],
       },
       match2: {
-        A: ['talonflame'],
-        B: ['wigglytuff'],
+        A: ['talonflame', null, 'dragonite'],
+        B: ['wigglytuff', 'crustle', 'hoopa'],
       },
       match3: { A: [], B: [] },
     },
@@ -187,12 +190,13 @@ export function createMockDraftStateMatch3(): DraftState {
     currentMatch: 3,
     currentTurn: 1,
     phase: 'pick', // PICKフェーズ
-    currentBanTeam: null, // PICKフェーズ中はnull
-    currentBanCount: 0, // PICKフェーズ中は0
+    globalBans: [], // グローバルBAN（テスト用は空）
+    globalBanConfirmed: true,
+    currentBanTeam: null, // BANフェーズ完了
     banConfirmed: {
-      match1: { A: true, B: true }, // 第1試合は確定済み
-      match2: { A: true, B: true }, // 第2試合は確定済み
-      match3: { A: false, B: false }, // 第3試合は進行中
+      match1: { A: true, B: true },
+      match2: { A: true, B: true },
+      match3: { A: true, B: true },
     },
     firstPickByMatch: {
       1: 'A',
@@ -223,8 +227,8 @@ export function createMockDraftStateMatch3(): DraftState {
         B: ['decidueye', 'dragonite', 'espeon'],
       },
       match3: {
-        A: ['blaziken'],
-        B: [],
+        A: ['blaziken', null, 'tyranitar'],
+        B: ['urshifu', 'metagross', 'alakazam'],
       },
     },
     updatedAt: now,
