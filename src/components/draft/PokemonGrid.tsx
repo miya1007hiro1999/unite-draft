@@ -85,15 +85,6 @@ export default function PokemonGrid({
     })
   })
 
-  // type名の表示ラベル
-  const typeLabels: Record<Pokemon['type'], string> = {
-    attack: 'アタック',
-    defence: 'ディフェンス',
-    speed: 'スピード',
-    support: 'サポート',
-    balance: 'バランス',
-  }
-
   // タイプごとの背景色定義（極薄、不透明度 0.06）
   const typeBackgroundColors: Record<Pokemon['type'], string> = {
     attack: 'rgba(229, 57, 53, 0.06)', // #E53935

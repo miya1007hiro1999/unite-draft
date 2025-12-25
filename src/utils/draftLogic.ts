@@ -142,6 +142,12 @@ export function getBanSequenceByMatch(
  */
 export function getCurrentBanningTeam(state: DraftState): Team {
   const { currentMatch, currentTurn, firstPickByMatch } = state
+
+  // グローバルBANフェーズ（match 0）では先行チームを返す
+  if (currentMatch === 0) {
+    return firstPickByMatch[1] // デフォルトで試合1の先行チームを返す
+  }
+
   const banSequence = getBanSequenceByMatch(currentMatch, firstPickByMatch)
 
   // currentTurnがシーケンス範囲外の場合は最後のチームを返す
@@ -235,7 +241,13 @@ export function getCurrentPickingTeam(state: DraftState): Team {
 
   // PICKフェーズ中はピック中のチームを返す
   const { currentMatch, currentTurn, firstPickByMatch } = state
-  const pickSequence = getPickSequenceByMatch(currentMatch as 1 | 2 | 3, firstPickByMatch)
+
+  // グローバルBANフェーズ（match 0）ではPICKフェーズにならないが、安全のため分岐
+  if (currentMatch === 0) {
+    return firstPickByMatch[1] // デフォルトで試合1の先行チームを返す
+  }
+
+  const pickSequence = getPickSequenceByMatch(currentMatch, firstPickByMatch)
 
   // currentTurnがシーケンス範囲外の場合は最後のチームを返す
   if (currentTurn >= pickSequence.length) {

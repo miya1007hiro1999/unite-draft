@@ -21,6 +21,9 @@ import {
   saveDraftState,
 } from "../lib/draftStorage";
 
+// Phase型定義
+type Phase = "ban" | "pick";
+
 export default function DraftPage() {
   // URLパラメータから draftId と mode を取得
   const { draftId, mode } = useParams<{ draftId?: string; mode?: string }>();
@@ -1439,6 +1442,9 @@ export default function DraftPage() {
 
               {/* BAN確定ボタン（BANフェーズ中で、BAN枠が3つすべて埋まっているとき） */}
               {(() => {
+                // currentPickingTeam が null の場合は早期リターン
+                if (!currentPickingTeam) return null;
+
                 // 現在の試合・チームのBAN配列を取得
                 const currentMatchBans =
                   state.currentMatch === 1
