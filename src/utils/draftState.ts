@@ -30,7 +30,7 @@ export function createInitialDraftState(data: SetupData): DraftState {
     currentMatch: 0, // グローバルBANフェーズから開始
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
-    globalBans: [], // グローバルBAN（最大16体）
+    globalBans: [], // グローバルBAN（最大30体）
     globalBanConfirmed: false, // グローバルBAN未確定
     currentBanTeam: null, // グローバルBAN中はnull
     banConfirmed: {

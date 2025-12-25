@@ -294,8 +294,8 @@ export function isPokemonSelectable(
         return false
       }
 
-      // グローバルBAN枠が埋まっている（最大16体）
-      if (state.globalBans.length >= 16) {
+      // グローバルBAN枠が埋まっている（最大30体）
+      if (state.globalBans.length >= 30) {
         return false
       }
 

@@ -835,7 +835,7 @@ export default function DraftPage() {
                       fontSize: "clamp(0.5rem, 1vw, 0.6rem)",
                     }}
                   >
-                    (BAN済み: {state.globalBans.length}/16体)
+                    (BAN済み: {state.globalBans.length}/30体)
                   </span>
                 </>
               ) : (
@@ -1005,7 +1005,7 @@ export default function DraftPage() {
                     gap: "0.5rem",
                   }}
                 >
-                  🌐 グローバルBAN済み ({state.globalBans.length}/16体)
+                  🌐 グローバルBAN済み ({state.globalBans.length}/30体)
                   {!state.globalBanConfirmed && (
                     <span
                       style={{
