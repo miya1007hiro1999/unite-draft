@@ -150,7 +150,7 @@ export default function PlayerCard({
       </div>
 
       {/* 下部：プレイヤー名 */}
-      <div
+      {/* <div
         style={{
           textAlign: 'center',
           padding: 'clamp(0.15rem, 0.4vw, 0.25rem) clamp(0.2rem, 0.6vw, 0.3rem)',
@@ -170,7 +170,7 @@ export default function PlayerCard({
           <span style={{ marginRight: '0.4rem', fontSize: '0.9em' }}>▶</span>
         )}
         {playerName}
-      </div>
+      </div> */}
 
       {/* アニメーション用のCSS */}
       <style>{`

@@ -969,7 +969,7 @@ export default function DraftPage() {
                   fontSize: "clamp(0.65rem, 1.4vw, 0.75rem)",
                 }}
               >
-                全試合で使用不可にするポケモンを選択してください（最大16体）
+                全試合で使用不可にするポケモンを選択してください（最大30体）
               </div>
             </div>
 
@@ -1728,11 +1728,12 @@ export default function DraftPage() {
         /* スマホ: 小画面（768px未満） */
         @media (max-width: 767px) {
           .draft-grid-layout {
-            grid-template-rows: auto 1fr;
+            grid-template-rows: auto 1fr 1fr;
             grid-template-columns: 1fr 1fr;
             grid-template-areas:
               "center center"
-              "teamA teamB";
+              "teamA teamA"
+              "teamB teamB";
           }
         }
       `}</style>
