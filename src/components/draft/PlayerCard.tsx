@@ -9,7 +9,7 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({
-  playerName,
+  playerName: _playerName,
   pokemon,
   teamColor,
   isCurrentPicker,
