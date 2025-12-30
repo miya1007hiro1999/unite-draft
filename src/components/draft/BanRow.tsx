@@ -30,7 +30,7 @@ export default function BanRow({
       }}
     >
       {/* BAN ヘッダー */}
-      <div
+      {/* <div
         style={{
           fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)',
           color: '#dc2626',
@@ -40,10 +40,11 @@ export default function BanRow({
         }}
       >
         🚫 BAN
-      </div>
+      </div> */}
 
       {/* BAN枠3つを横並び */}
       <div
+      className='player-ban-list'
         style={{
           display: 'flex',
           gap: 'clamp(0.15rem, 0.4vw, 0.2rem)',

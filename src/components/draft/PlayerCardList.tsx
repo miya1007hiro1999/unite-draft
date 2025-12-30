@@ -38,13 +38,14 @@ export default function PlayerCardList({
         borderLeftWidth: isActive ? "4px" : "3px",
         borderLeftColor: teamColor,
         boxShadow: isActive
-          ? `0 0 0 2px ${teamColor}20, 0 1px 3px rgba(0, 0, 0, 0.1)`
+          ? `0 0 12px 2px ${teamColor}80, 0 0 0 2px ${teamColor}40, 0 1px 3px rgba(0, 0, 0, 0.1)`
           : "0 1px 3px rgba(0, 0, 0, 0.08)",
         transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
         minHeight: "100px",
       }}
     >
       <div
+      className="player-card-list-header"
       style={{
           display: "flex",
           flexDirection: "row",
@@ -65,7 +66,7 @@ export default function PlayerCardList({
             color: teamColor,
             width:'60%',
             margin: "0",
-            fontSize: "clamp(0.65rem, 1.4vw, 0.8rem)",
+            fontSize: "1.5rem",
             textAlign: "center",
             borderBottom: `1px solid ${teamColor}30`,
             paddingBottom: "clamp(0.2rem, 0.5vw, 0.3rem)",

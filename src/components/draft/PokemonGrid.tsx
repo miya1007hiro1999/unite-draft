@@ -94,51 +94,14 @@ export default function PokemonGrid({
     support: 'rgba(249, 168, 37, 0.06)', // #F9A825
   }
 
-  // フェーズに応じたタイトル
-  const title = state.phase === 'ban' ? '🚫 BAN 選択' : '✓ ポケモン選択'
-  const titleColor = state.phase === 'ban' ? '#dc2626' : '#059669'
-
   return (
     <div>
-      <h2
-        style={{
-          color: titleColor,
-          margin: '0 0 clamp(0.4rem, 1vw, 0.6rem) 0',
-          fontSize: 'clamp(0.75rem, 1.8vw, 0.9rem)',
-          textAlign: 'center',
-          fontWeight: 'bold',
-          letterSpacing: '0.05em',
-        }}
-      >
-        {title}
-        {isReadOnly && (
-          <span
-            style={{
-              marginLeft: 'clamp(0.2rem, 0.7vw, 0.35rem)',
-              fontSize: 'clamp(0.5rem, 1.1vw, 0.6rem)',
-              color: '#92400e',
-              backgroundColor: '#fef3c7',
-              padding: 'clamp(0.15rem, 0.4vw, 0.2rem) clamp(0.2rem, 0.7vw, 0.35rem)',
-              borderRadius: '3px',
-              fontWeight: 'bold',
-              border: '1px solid #fbbf24',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            読み取り専用
-          </span>
-        )}
-      </h2>
-
       <div
         className="pokemon-grid-container"
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(0.5rem, 1vw, 0.75rem)',
-          maxHeight: 'clamp(45vh, 55vh, 65vh)',
           overflowY: 'auto',
-          padding: 'clamp(0.25rem, 0.5vw, 0.35rem)',
           background: '#f9fafb',
           borderRadius: 'clamp(6px, 0.8vw, 10px)',
           border: '1px solid #e5e7eb',
@@ -163,14 +126,14 @@ export default function PokemonGrid({
               style={{
                 display: 'flex',
                 flexDirection: 'row',
-                gap: '10px',
                 flexWrap: 'wrap',
                 backgroundColor: typeBackgroundColors[type],
-                padding: '6px',
                 borderRadius: '8px',
               }}
             >
-              {pokemonByType[type].map((pokemon) => {
+              {pokemonByType[type]
+                .filter((pokemon) => !bannedPokemon.includes(pokemon.id)) // BANされたポケモンを除外
+                .map((pokemon) => {
                 const isBanned = bannedPokemon.includes(pokemon.id)
                 // 🔒 読み取り専用モードでは全て選択不可
                 const isSelectable = !isReadOnly && isPokemonSelectable(state, pokemon.id)

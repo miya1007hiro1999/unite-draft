@@ -26,7 +26,7 @@ export default function PlayerCard({
         padding: 'clamp(0.2rem, 0.5vw, 0.3rem)',
         border: isCurrentPicker ? `2px solid ${teamColor}` : '1px solid #e5e7eb',
         boxShadow: isCurrentPicker
-          ? `0 0 0 3px ${teamColor}20, 0 1px 3px rgba(0, 0, 0, 0.1)`
+          ? `0 0 16px 4px ${teamColor}60, 0 0 0 3px ${teamColor}40, 0 1px 3px rgba(0, 0, 0, 0.1)`
           : '0 1px 2px rgba(0, 0, 0, 0.05)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
@@ -89,12 +89,12 @@ export default function PlayerCard({
                 alt={pokemon.name}
                 className="player-card-pokemon-img"
                 style={{
-                  width: 'clamp(32px, 4vw, 42px)',
-                  height: 'clamp(32px, 4vw, 42px)',
+                  width: '100%',
+                  // height: 'clamp(32px, 4vw, 42px)',
                   borderRadius: '5px',
                   objectFit: 'cover',
                   border: `1.5px solid ${teamColor}`,
-                  boxShadow: `0 3px 12px ${teamColor}40, 0 0 0 1px ${teamColor}20 inset`,
+                  boxShadow: `0 0 16px ${teamColor}70, 0 3px 12px ${teamColor}50, 0 0 0 1px ${teamColor}30 inset`,
                   transition: 'transform 0.3s ease',
                 }}
               />

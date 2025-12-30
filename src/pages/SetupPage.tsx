@@ -9,40 +9,14 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [tournamentName, setTournamentName] = useState('')
   const [teamAName, setTeamAName] = useState('')
   const [teamBName, setTeamBName] = useState('')
-  const [teamAPlayers, setTeamAPlayers] = useState(['', '', '', '', ''])
-  const [teamBPlayers, setTeamBPlayers] = useState(['', '', '', '', ''])
   const [firstPick, setFirstPick] = useState<Team>('A')
-
-  const handlePlayerChange = (
-    team: 'A' | 'B',
-    index: number,
-    value: string
-  ) => {
-    if (team === 'A') {
-      const newPlayers = [...teamAPlayers]
-      newPlayers[index] = value
-      setTeamAPlayers(newPlayers)
-    } else {
-      const newPlayers = [...teamBPlayers]
-      newPlayers[index] = value
-      setTeamBPlayers(newPlayers)
-    }
-  }
 
   const handleStartDraft = async () => {
     // バリデーション
     if (!teamAName.trim() || !teamBName.trim()) {
       setError('チーム名を入力してください')
-      return
-    }
-
-    const allPlayersA = teamAPlayers.every((p) => p.trim())
-    const allPlayersB = teamBPlayers.every((p) => p.trim())
-    if (!allPlayersA || !allPlayersB) {
-      setError('すべてのプレイヤー名を入力してください')
       return
     }
 
@@ -53,12 +27,14 @@ export default function SetupPage() {
       // 既存のドラフトIDをクリア（新規ドラフトを作成）
       startNewDraft()
 
+      // デフォルトのプレイヤー名を生成
+      const defaultPlayers = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5']
+
       const initialState = createInitialDraftState({
-        tournamentName: tournamentName.trim() || undefined,
         teamAName: teamAName.trim(),
         teamBName: teamBName.trim(),
-        teamAPlayers: teamAPlayers.map((p) => p.trim()),
-        teamBPlayers: teamBPlayers.map((p) => p.trim()),
+        teamAPlayers: defaultPlayers,
+        teamBPlayers: defaultPlayers,
         firstPick,
       })
 
@@ -137,67 +113,27 @@ export default function SetupPage() {
           </div>
         )}
 
-        <div style={{ marginBottom: 'clamp(1.5rem, 3vw, 2rem)' }}>
-          <label
-            style={{
-              color: '#374151',
-              fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-              fontWeight: 'bold',
-              marginBottom: '0.5rem',
-              display: 'block',
-            }}
-          >
-            大会名（任意）
-          </label>
-          <input
-            type="text"
-            value={tournamentName}
-            onChange={(e) => setTournamentName(e.target.value)}
-            placeholder="例: 第1回トーナメント"
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: 'clamp(0.6rem, 1.5vw, 0.75rem)',
-              background: '#ffffff',
-              border: '1px solid #d1d5db',
-              borderRadius: '10px',
-              color: '#1f2937',
-              fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-              transition: 'all 0.3s ease',
-              outline: 'none',
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#10b981'
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)'
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = '#d1d5db'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-          />
-        </div>
-
         <div className="teams-grid" style={{ marginBottom: 'clamp(1.5rem, 3vw, 2rem)' }}>
-          {/* チームA */}
+          {/* オレンジチーム */}
           <div
             style={{
               background: '#ffffff',
               padding: 'clamp(1rem, 2.5vw, 1.5rem)',
               borderRadius: '16px',
-              border: '2px solid #e9456020',
+              border: '2px solid #f9731620',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
             }}
           >
             <h2
               style={{
-                color: '#e94560',
+                color: '#f97316',
                 fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
                 fontWeight: 'bold',
                 marginBottom: '1rem',
                 textAlign: 'center',
               }}
             >
-              チームA
+              オレンジチーム
             </h2>
             <label
               style={{
@@ -214,13 +150,12 @@ export default function SetupPage() {
               type="text"
               value={teamAName}
               onChange={(e) => setTeamAName(e.target.value)}
-              placeholder="チームA"
+              placeholder="Orange Team"
               className="team-input"
               style={{
                 display: 'block',
                 width: '100%',
                 padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
-                marginBottom: '1rem',
                 background: '#ffffff',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
@@ -230,61 +165,28 @@ export default function SetupPage() {
                 outline: 'none',
               }}
             />
-            <h3
-              style={{
-                color: '#6b7280',
-                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                fontWeight: 'bold',
-                marginBottom: '0.75rem',
-              }}
-            >
-              プレイヤー
-            </h3>
-            {teamAPlayers.map((player, index) => (
-              <input
-                key={index}
-                type="text"
-                value={player}
-                onChange={(e) => handlePlayerChange('A', index, e.target.value)}
-                placeholder={`プレイヤー ${index + 1}`}
-                className="player-input"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
-                  marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
-                  background: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#1f2937',
-                  fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
-                  transition: 'all 0.3s ease',
-                  outline: 'none',
-                }}
-              />
-            ))}
           </div>
 
-          {/* チームB */}
+          {/* パープルチーム */}
           <div
             style={{
               background: '#ffffff',
               padding: 'clamp(1rem, 2.5vw, 1.5rem)',
               borderRadius: '16px',
-              border: '2px solid #4ade8020',
+              border: '2px solid #8b5cf620',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
             }}
           >
             <h2
               style={{
-                color: '#4ade80',
+                color: '#8b5cf6',
                 fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
                 fontWeight: 'bold',
                 marginBottom: '1rem',
                 textAlign: 'center',
               }}
             >
-              チームB
+              パープルチーム
             </h2>
             <label
               style={{
@@ -301,13 +203,12 @@ export default function SetupPage() {
               type="text"
               value={teamBName}
               onChange={(e) => setTeamBName(e.target.value)}
-              placeholder="チームB"
+              placeholder="Purple Team"
               className="team-input"
               style={{
                 display: 'block',
                 width: '100%',
                 padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
-                marginBottom: '1rem',
                 background: '#ffffff',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
@@ -317,39 +218,6 @@ export default function SetupPage() {
                 outline: 'none',
               }}
             />
-            <h3
-              style={{
-                color: '#6b7280',
-                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                fontWeight: 'bold',
-                marginBottom: '0.75rem',
-              }}
-            >
-              プレイヤー
-            </h3>
-            {teamBPlayers.map((player, index) => (
-              <input
-                key={index}
-                type="text"
-                value={player}
-                onChange={(e) => handlePlayerChange('B', index, e.target.value)}
-                placeholder={`プレイヤー ${index + 1}`}
-                className="player-input"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: 'clamp(0.5rem, 1.2vw, 0.65rem)',
-                  marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
-                  background: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  color: '#1f2937',
-                  fontSize: 'clamp(0.8rem, 1.6vw, 0.9rem)',
-                  transition: 'all 0.3s ease',
-                  outline: 'none',
-                }}
-              />
-            ))}
           </div>
         </div>
 
@@ -390,8 +258,8 @@ export default function SetupPage() {
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
-            <option value="A">チームA</option>
-            <option value="B">チームB</option>
+            <option value="A">オレンジチーム (Orange)</option>
+            <option value="B">パープルチーム (Purple)</option>
           </select>
         </div>
 
@@ -445,8 +313,7 @@ export default function SetupPage() {
             }
           }
 
-          .team-input:focus,
-          .player-input:focus {
+          .team-input:focus {
             border-color: #10b981 !important;
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
           }

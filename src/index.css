@@ -58,6 +58,15 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+.teamB .player-card-list-header{
+  flex-direction: row-reverse !important;
+}
+
+
+.teamB .player-card-list-header .player-ban-list{
+  justify-content: flex-end !important;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -89,11 +98,6 @@ button:focus-visible {
     font-size: 0.65rem !important;
   }
 
-  /* DraftPageのgapを小さく */
-  .draft-grid-layout {
-    gap: 0.5rem !important;
-    padding: 0.5rem !important;
-  }
 
   /* ヘッダーとフッターのパディングを削減 */
   header, footer {
@@ -113,15 +117,12 @@ button:focus-visible {
 
   /* プレイヤーカードをコンパクトに */
   .player-card {
-    min-height: 100px !important;
     padding: 0.4rem !important;
     border-radius: 8px !important;
   }
 
   /* プレイヤーカード内のポケモン画像を小さく */
   .player-card-pokemon-img {
-    width: 45px !important;
-    height: 45px !important;
     border-width: 2px !important;
   }
 }

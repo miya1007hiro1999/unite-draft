@@ -126,10 +126,10 @@ export default function BanSlot({
         width: '50px',
         height: '50px',
         borderRadius: '3px',
-        border: `1px solid ${teamColor}`,
+        border: `2px solid ${teamColor}`,
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+        boxShadow: `0 0 8px ${teamColor}60, 0 1px 2px rgba(0, 0, 0, 0.1)`,
       }}
     >
       {/* ポケモン画像 */}

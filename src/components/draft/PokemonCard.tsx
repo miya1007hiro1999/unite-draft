@@ -16,13 +16,10 @@ export default function PokemonCard({
   isPickedInCurrentMatch = false,
   onClick,
 }: PokemonCardProps) {
-  // 黄色い縁を表示する条件：現在の試合でピックされている
   const borderColor = isBanned
     ? '#d1d5db'
     : isPickedInCurrentMatch
-    ? '#fbbf24' // 黄色
-    : isSelectable
-    ? '#e5e7eb'
+    ? '#fbbf24'
     : '#e5e7eb'
 
   const hoverBorderColor = isSelectable ? '#10b981' : borderColor
@@ -31,18 +28,16 @@ export default function PokemonCard({
     <div
       onClick={onClick}
       style={{
-        width: '55px',
-        minWidth: '55px',
-        maxWidth: '55px',
-        background: isBanned
-          ? '#f3f4f6'
-          : '#ffffff',
+        width: '60px',
+        minWidth: '60px',
+        maxWidth: '60px',
+        background: isBanned ? '#f3f4f6' : '#ffffff',
         borderRadius: '5px',
-        padding: 'clamp(0.2rem, 0.5vw, 0.35rem)',
+        // padding: 'clamp(0.2rem, 0.5vw, 0.35rem)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(0.15rem, 0.4vw, 0.2rem)',
+        gap: '0.2rem',
         border: `1px solid ${borderColor}`,
         boxShadow: isPickedInCurrentMatch
           ? '0 0 0 2px #fbbf2460, 0 1px 3px rgba(0, 0, 0, 0.1)'
@@ -53,7 +48,6 @@ export default function PokemonCard({
         cursor: isBanned ? 'not-allowed' : isSelectable ? 'pointer' : 'default',
         opacity: isBanned ? 0.4 : 1,
         filter: isBanned ? 'grayscale(100%)' : 'none',
-        transform: 'scale(1)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -61,17 +55,22 @@ export default function PokemonCard({
         if (isSelectable) {
           e.currentTarget.style.transform = 'scale(1.03) translateY(-1px)'
           e.currentTarget.style.borderColor = hoverBorderColor
-          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1), 0 0 0 2px #10b98140'
+          e.currentTarget.style.boxShadow =
+            '0 4px 6px rgba(0, 0, 0, 0.1), 0 0 0 2px #10b98140'
+
+          const img = e.currentTarget.querySelector('img')
+          if (img) img.style.transform = 'scale(1.05)'
         }
       }}
       onMouseLeave={(e) => {
-        if (isSelectable) {
-          e.currentTarget.style.transform = 'scale(1) translateY(0)'
-          e.currentTarget.style.borderColor = borderColor
-          e.currentTarget.style.boxShadow = isPickedInCurrentMatch
-            ? '0 0 0 2px #fbbf2460, 0 1px 3px rgba(0, 0, 0, 0.1)'
-            : '0 1px 3px rgba(0, 0, 0, 0.08)'
-        }
+        e.currentTarget.style.transform = 'scale(1) translateY(0)'
+        e.currentTarget.style.borderColor = borderColor
+        e.currentTarget.style.boxShadow = isPickedInCurrentMatch
+          ? '0 0 0 2px #fbbf2460, 0 1px 3px rgba(0, 0, 0, 0.1)'
+          : '0 1px 3px rgba(0, 0, 0, 0.08)'
+
+        const img = e.currentTarget.querySelector('img')
+        if (img) img.style.transform = 'scale(1)'
       }}
     >
       {/* グラデーションオーバーレイ */}
@@ -79,53 +78,31 @@ export default function PokemonCard({
         <div
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, transparent 100%)',
+            inset: 0,
+            background:
+              'linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, transparent 100%)',
             pointerEvents: 'none',
-            borderRadius: '8px',
           }}
         />
       )}
 
-      {/* ポケモン画像 */}
-      <div style={{ position: 'relative' }}>
-        <img
-          src={getPokemonImage(pokemon.id)}
-          alt={pokemon.name}
-          style={{
-            width: '100%',
-            height: 'auto',
-            borderRadius: '4px',
-            objectFit: 'cover',
-            boxShadow: isPickedInCurrentMatch
-              ? '0 2px 8px rgba(251, 191, 36, 0.4)'
-              : '0 1px 4px rgba(0, 0, 0, 0.3)',
-            transition: 'transform 0.3s ease',
-          }}
-        />
-      </div>
-
-      {/* ポケモン名 */}
-      {/* <div
+      {/* ポケモン画像（imgを主役に） */}
+      <img
+        src={getPokemonImage(pokemon.id)}
+        alt={pokemon.name}
         style={{
           width: '100%',
-          color: isBanned ? '#9ca3af' : '#374151',
-          fontSize: 'clamp(0.5rem, 1vw, 0.6rem)',
-          textAlign: 'center',
-          fontWeight: isPickedInCurrentMatch ? 'bold' : '500',
-          lineHeight: 1.2,
+          height: 'auto',
+          borderRadius: '4px',
+          objectFit: 'cover',
+          boxShadow: isPickedInCurrentMatch
+            ? '0 2px 8px rgba(251, 191, 36, 0.4)'
+            : '0 1px 4px rgba(0, 0, 0, 0.3)',
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',
           zIndex: 1,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
         }}
-      >
-        {pokemon.name}
-      </div> */}
+      />
 
       {/* BANバッジ */}
       {isBanned && (
@@ -144,6 +121,7 @@ export default function PokemonCard({
             letterSpacing: '0.1em',
             boxShadow: '0 2px 8px rgba(220, 38, 38, 0.6)',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
+            zIndex: 2,
           }}
         >
           BAN

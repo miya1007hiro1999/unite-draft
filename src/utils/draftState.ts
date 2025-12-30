@@ -27,12 +27,12 @@ export function createInitialDraftState(data: SetupData): DraftState {
         players: data.teamBPlayers,
       },
     },
-    currentMatch: 0, // グローバルBANフェーズから開始
+    currentMatch: 1, // 第1試合から開始
     currentTurn: 0,
     phase: 'ban', // BANフェーズから開始
-    globalBans: [], // グローバルBAN（最大30体）
-    globalBanConfirmed: false, // グローバルBAN未確定
-    currentBanTeam: null, // グローバルBAN中はnull
+    globalBans: [], // グローバルBAN（廃止、互換性のため残す）
+    globalBanConfirmed: true, // グローバルBAN（廃止、互換性のため残す）
+    currentBanTeam: data.firstPick, // 第1試合の先行BANチーム
     banConfirmed: {
       match1: { A: false, B: false },
       match2: { A: false, B: false },
