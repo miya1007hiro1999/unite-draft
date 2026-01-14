@@ -2,6 +2,13 @@ import { getSupabaseClient } from './supabase'
 import type { DraftState, Team } from '../types/draft'
 
 /**
+ * Team ('A' | 'B') を DB の team カラム ('orange' | 'purple') に変換
+ */
+function toDbTeam(team: Team): 'orange' | 'purple' {
+  return team === 'A' ? 'orange' : 'purple'
+}
+
+/**
  * PICK操作を確定する
  *
  * 動作:
@@ -25,7 +32,7 @@ export async function confirmPick(
     const { error: actionError } = await supabase.from('draft_actions').insert({
       draft_id: draftId,
       action_type: 'pick',
-      team,
+      team: toDbTeam(team), // 'A' | 'B' → 'orange' | 'purple'
       pokemon_id: pokemonId,
       order_index: orderIndex,
       created_by: null, // MVP: ログイン機能なし
@@ -103,7 +110,7 @@ export async function confirmBan(
     const { error: actionError } = await supabase.from('draft_actions').insert({
       draft_id: draftId,
       action_type: 'ban',
-      team,
+      team: toDbTeam(team), // 'A' | 'B' → 'orange' | 'purple'
       pokemon_id: pokemonId,
       order_index: orderIndex,
       created_by: null,
@@ -181,7 +188,7 @@ export async function confirmBanSkip(
     const { error: actionError } = await supabase.from('draft_actions').insert({
       draft_id: draftId,
       action_type: 'ban',
-      team,
+      team: toDbTeam(team), // 'A' | 'B' → 'orange' | 'purple'
       pokemon_id: '__skip__', // スキップを示す特殊値
       order_index: orderIndex,
       created_by: null,
