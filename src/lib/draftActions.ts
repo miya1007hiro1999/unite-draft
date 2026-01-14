@@ -169,6 +169,177 @@ export async function confirmBan(
 }
 
 /**
+ * BANフェーズの確定（フェーズ遷移）
+ *
+ * 動作:
+ * 1. banConfirmedフラグを立てる
+ * 2. 次のチームまたはPICKフェーズへ遷移
+ * 3. drafts.state を UPDATE
+ */
+export async function confirmBanPhaseComplete(
+  draftId: string,
+  currentState: DraftState
+): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient()
+
+    console.log('[confirmBanPhaseComplete] Starting...', {
+      currentMatch: currentState.currentMatch,
+      currentBanTeam: currentState.currentBanTeam
+    })
+
+    const { currentMatch, currentBanTeam, banConfirmed, firstPickByMatch } = currentState
+
+    if (!currentBanTeam) {
+      console.error('[confirmBanPhaseComplete] No current ban team')
+      return false
+    }
+
+    // 既に確定済みかチェック
+    const isAlreadyConfirmed =
+      (currentMatch === 1 && banConfirmed.match1[currentBanTeam]) ||
+      (currentMatch === 2 && banConfirmed.match2[currentBanTeam]) ||
+      (currentMatch === 3 && banConfirmed.match3[currentBanTeam])
+
+    if (isAlreadyConfirmed) {
+      console.warn('[confirmBanPhaseComplete] BAN already confirmed')
+      return false
+    }
+
+    // 確定フラグを立てる
+    const newBanConfirmed = { ...banConfirmed }
+    if (currentMatch === 1) {
+      newBanConfirmed.match1 = {
+        ...newBanConfirmed.match1,
+        [currentBanTeam]: true,
+      }
+    } else if (currentMatch === 2) {
+      newBanConfirmed.match2 = {
+        ...newBanConfirmed.match2,
+        [currentBanTeam]: true,
+      }
+    } else if (currentMatch === 3) {
+      newBanConfirmed.match3 = {
+        ...newBanConfirmed.match3,
+        [currentBanTeam]: true,
+      }
+    }
+
+    // 次のチームまたはフェーズへ遷移
+    const firstBanTeam = firstPickByMatch[currentMatch as 1 | 2 | 3]
+    const secondBanTeam: Team = firstBanTeam === 'A' ? 'B' : 'A'
+
+    let newCurrentBanTeam: Team | null = currentBanTeam
+    let newPhase: 'ban' | 'pick' = 'ban'
+    let newCurrentTurn = currentState.currentTurn
+
+    // 先行チームが確定した場合 → 後攻チームへ
+    if (currentBanTeam === firstBanTeam) {
+      newCurrentBanTeam = secondBanTeam
+      console.log(
+        `[confirmBanPhaseComplete] Team ${currentBanTeam} BAN confirmed → Switching to Team ${secondBanTeam}`
+      )
+    } else {
+      // 後攻チームも確定した場合 → PICKフェーズへ
+      newCurrentBanTeam = null
+      newPhase = 'pick'
+      newCurrentTurn = 0
+      console.log(
+        `[confirmBanPhaseComplete] Team ${currentBanTeam} BAN confirmed → Transitioning to PICK phase`
+      )
+    }
+
+    const updatedState: DraftState = {
+      ...currentState,
+      banConfirmed: newBanConfirmed,
+      currentBanTeam: newCurrentBanTeam,
+      phase: newPhase,
+      currentTurn: newCurrentTurn,
+      updatedAt: new Date().toISOString(),
+    }
+
+    // drafts.state を UPDATE
+    const { error: updateError } = await supabase
+      .from('drafts')
+      .update({ state: updatedState })
+      .eq('id', draftId)
+
+    if (updateError) {
+      console.error('[confirmBanPhaseComplete] Failed to update draft state:', updateError)
+      return false
+    }
+
+    console.log('[confirmBanPhaseComplete] BAN phase transition completed')
+    return true
+  } catch (error) {
+    console.error('[confirmBanPhaseComplete] Unexpected error:', error)
+    return false
+  }
+}
+
+/**
+ * 次の試合へ遷移する
+ *
+ * 動作:
+ * 1. currentMatch を +1
+ * 2. phase を 'ban' にリセット
+ * 3. currentBanTeam を次の試合の先行チームに設定
+ * 4. drafts.state を UPDATE
+ */
+export async function goToNextMatch(
+  draftId: string,
+  currentState: DraftState
+): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient()
+
+    console.log('[goToNextMatch] Starting...', { currentMatch: currentState.currentMatch })
+
+    // 第3試合終了後は遷移しない
+    if (currentState.currentMatch === 3) {
+      console.warn('[goToNextMatch] Already at match 3')
+      return false
+    }
+
+    // 次の試合へ（1→2, 2→3）
+    const nextMatch = (currentState.currentMatch + 1) as 1 | 2 | 3
+
+    // 次の試合の先行BANチームを取得
+    const firstBanTeam = currentState.firstPickByMatch[nextMatch]
+
+    const updatedState: DraftState = {
+      ...currentState,
+      currentMatch: nextMatch,
+      currentTurn: 0,
+      phase: 'ban',
+      currentBanTeam: firstBanTeam,
+      updatedAt: new Date().toISOString(),
+    }
+
+    console.log(
+      `[goToNextMatch] Transitioning to Match ${nextMatch} (BAN phase, Team ${firstBanTeam} starts)`
+    )
+
+    // drafts.state を UPDATE
+    const { error: updateError } = await supabase
+      .from('drafts')
+      .update({ state: updatedState })
+      .eq('id', draftId)
+
+    if (updateError) {
+      console.error('[goToNextMatch] Failed to update draft state:', updateError)
+      return false
+    }
+
+    console.log('[goToNextMatch] Match transition completed')
+    return true
+  } catch (error) {
+    console.error('[goToNextMatch] Unexpected error:', error)
+    return false
+  }
+}
+
+/**
  * BANスキップを確定する（null BAN）
  */
 export async function confirmBanSkip(

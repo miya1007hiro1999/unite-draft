@@ -20,7 +20,7 @@ import {
 } from "../lib/draftStorage";
 import type { Pokemon } from "../types/pokemon";
 import { useDraftRealtime } from "../hooks/useDraftRealtime";
-import { confirmPick, confirmBan, confirmBanSkip } from "../lib/draftActions";
+import { confirmPick, confirmBan, confirmBanSkip, confirmBanPhaseComplete, goToNextMatch } from "../lib/draftActions";
 
 // Phase型定義
 type Phase = "ban" | "pick";
@@ -441,21 +441,25 @@ export default function DraftPage() {
   };
 
   // 通常試合のBAN最終確定ハンドラー
-  const handleConfirmBan = () => {
+  const handleConfirmBan = async () => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: BAN confirm disabled");
       return;
     }
 
-    // Realtime モードでは BAN 確定（フェーズ遷移）は未対応
+    if (!state) return;
+
+    // Realtime モード: confirmBanPhaseComplete を使用
     if (draftId) {
-      console.warn("[DraftPage] BAN phase transition is not supported in Realtime mode yet");
+      const success = await confirmBanPhaseComplete(draftId, state);
+      if (!success) {
+        console.error("[DraftPage] Failed to confirm BAN phase");
+      }
       return;
     }
 
-    // Legacy モードのみ対応
-    if (!state) return;
+    // Legacy モード: setLegacyState を使用
 
     setLegacyState((prevState) => {
       if (!prevState || prevState.phase !== "ban") return prevState;
@@ -537,21 +541,25 @@ export default function DraftPage() {
   };
 
   // 次の試合へ進むハンドラー
-  const handleGoToNextMatch = () => {
+  const handleGoToNextMatch = async () => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: Match transition disabled");
       return;
     }
 
-    // Realtime モードでは試合遷移は未対応
+    if (!state) return;
+
+    // Realtime モード: goToNextMatch を使用
     if (draftId) {
-      console.warn("[DraftPage] Match transition is not supported in Realtime mode yet");
+      const success = await goToNextMatch(draftId, state);
+      if (!success) {
+        console.error("[DraftPage] Failed to transition to next match");
+      }
       return;
     }
 
-    // Legacy モードのみ対応
-    if (!state) return;
+    // Legacy モード: setLegacyState を使用
 
     setLegacyState((prevState) => {
       // prevStateがnullの場合は何もしない（通常は起こらない）
