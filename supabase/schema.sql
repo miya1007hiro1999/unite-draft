@@ -38,14 +38,42 @@ CREATE INDEX IF NOT EXISTS idx_drafts_updated_at ON drafts (updated_at DESC);
 -- 5. RLS (Row Level Security) の有効化
 ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
 
--- 6. 開発用ポリシー: 全アクセス許可
--- ⚠️ 本番環境では認証機能追加後に削除・修正すること
+-- ========================================
+-- 6. Realtime 対応 RLS ポリシー
+-- ========================================
+-- 既存ポリシーを削除
 DROP POLICY IF EXISTS "Enable all access for development" ON drafts;
+DROP POLICY IF EXISTS "Admin can insert drafts" ON drafts;
+DROP POLICY IF EXISTS "Admin can update drafts" ON drafts;
+DROP POLICY IF EXISTS "Admin can delete drafts" ON drafts;
+DROP POLICY IF EXISTS "Everyone can view drafts" ON drafts;
+DROP POLICY IF EXISTS "Allow anon all operations" ON drafts;
 
-CREATE POLICY "Enable all access for development" ON drafts
+-- anon ロールに全操作を許可（MVP仕様）
+-- admin / 観戦の区別はフロントエンド（URL）で制御
+CREATE POLICY "Allow anon all operations" ON drafts
   FOR ALL
+  TO anon
   USING (true)
   WITH CHECK (true);
+
+-- ========================================
+-- 7. Realtime Publication の設定
+-- ========================================
+-- Realtime で drafts テーブルの変更を配信
+-- Supabase では "supabase_realtime" publication が自動作成されているため、
+-- テーブルを追加するだけで OK
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND tablename = 'drafts'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE drafts;
+  END IF;
+END $$;
 
 -- ========================================
 -- セットアップ完了
