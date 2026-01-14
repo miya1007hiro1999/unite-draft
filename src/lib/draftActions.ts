@@ -1,6 +1,5 @@
 import { getSupabaseClient } from './supabase'
 import type { DraftState, Team } from '../types/draft'
-import type { DraftAction } from '../hooks/useDraftRealtime'
 
 /**
  * PICK操作を確定する
