@@ -16,10 +16,11 @@ import PlayerCardList from "../components/draft/PlayerCardList";
 import { getPokemonById } from "../data/pokemon";
 import {
   loadDraftState,
-  loadDraftStateById,
   saveDraftState,
 } from "../lib/draftStorage";
 import type { Pokemon } from "../types/pokemon";
+import { useDraftRealtime } from "../hooks/useDraftRealtime";
+import { confirmPick, confirmBan, confirmBanSkip } from "../lib/draftActions";
 
 // Phase型定義
 type Phase = "ban" | "pick";
@@ -31,16 +32,39 @@ export default function DraftPage() {
   // mode が 'view' の場合は読み取り専用
   const isReadOnly = mode === "view";
 
-  const [state, setState] = useState<DraftState | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Realtime で state を管理（draftId がある場合）
+  const {
+    draftState: realtimeState,
+    confirmedActions,
+    isLoading: realtimeLoading,
+    error,
+  } = useDraftRealtime({
+    draftId,
+    enabled: !!draftId,
+  });
+
+  // 従来の state（draftId がない場合の /draft 用）
+  const [legacyState, setLegacyState] = useState<DraftState | null>(null);
+  const [legacyLoading, setLegacyLoading] = useState(true);
+
+  // draftId の有無で state を切り替え
+  const state = draftId ? realtimeState : legacyState;
+  const isLoading = draftId ? realtimeLoading : legacyLoading;
+
+  // 未確定 state はローカルのみ
   const [pendingPick, setPendingPick] = useState<Pokemon | null>(null); // null = BANスキップ
 
   // React 18 StrictMode による useEffect 二重実行を防ぐためのガード
   // 開発環境でも初期化が一度だけ実行されることを保証
   const isInitialized = useRef(false);
 
-  // 初期表示時にSupabaseからDraftStateを読み込む（一度だけ初期化）
+  // 初期表示時にSupabaseからDraftStateを読み込む（draftId がない場合のみ）
   useEffect(() => {
+    // draftId がある場合は useDraftRealtime が処理するのでスキップ
+    if (draftId) {
+      return;
+    }
+
     // ✅ StrictMode二重実行ガード: 既に初期化済みなら何もしない
     if (isInitialized.current) {
       console.log("[DraftPage] Already initialized, skipping...");
@@ -49,104 +73,94 @@ export default function DraftPage() {
 
     const loadInitialState = async () => {
       try {
-        console.log("[DraftPage] === Initialization START ===");
-        console.log(
-          "[DraftPage] Mode:",
-          mode || "default",
-          "| Draft ID:",
-          draftId || "none"
-        );
-        console.log("[DraftPage] Read-only:", isReadOnly);
+        console.log("[DraftPage] === Legacy Initialization START ===");
+        console.log("[DraftPage] No draft ID in URL, using legacy behavior");
 
         let loadedState: DraftState | null = null;
 
-        // ケース1: URLにdraftIdが指定されている場合（運営・観戦用）
-        if (draftId) {
-          console.log("[DraftPage] Loading specific draft by ID...");
-          loadedState = await loadDraftStateById(draftId);
+        // Supabaseから既存ドラフトを読み込み
+        loadedState = await loadDraftState();
 
-          if (!loadedState) {
-            console.error("[DraftPage] ❌ Draft not found:", draftId);
-            // エラーメッセージを表示するため、空の状態で終了
-            setIsLoading(false);
-            return;
-          }
-
-          console.log("[DraftPage] ✅ Loaded draft by ID");
-          setState(loadedState);
+        if (loadedState) {
+          // 既存のドラフトがある場合はそれを使用（正本）
+          console.log("[DraftPage] Using existing draft from Supabase");
+          setLegacyState(loadedState);
         } else {
-          // ケース2: URLにdraftIdがない場合（既存の挙動: /draft）
-          console.log(
-            "[DraftPage] No draft ID in URL, using default behavior..."
-          );
+          // 既存データがない場合のみモックを作成
+          console.log("[DraftPage] No existing draft, creating mock...");
+          const mockState = createMockDraftState();
 
-          // Supabaseから既存ドラフトを読み込み
-          loadedState = await loadDraftState();
+          // モックをSupabaseに保存してから setState
+          const result = await saveDraftState(mockState);
 
-          if (loadedState) {
-            // 既存のドラフトがある場合はそれを使用（正本）
-            console.log("[DraftPage] Using existing draft from Supabase");
-            setState(loadedState);
-          } else {
-            // 既存データがない場合のみモックを作成
-            console.log("[DraftPage] No existing draft, creating mock...");
-            const mockState = createMockDraftState();
-
-            // モックをSupabaseに保存してから setState
-            const result = await saveDraftState(mockState);
-
-            if (result) {
-              // 成功（新規作成 or 更新）
-              console.log(
-                "[DraftPage] Mock draft saved and set as initial state"
-              );
-              if (typeof result === "string") {
-                console.log("[DraftPage] New draft ID:", result);
-              }
-              setState(mockState);
-            } else {
-              // 保存失敗時もモックを使用（ローカルのみで動作）
-              console.warn(
-                "[DraftPage] Failed to save initial mock, using local state only"
-              );
-              setState(mockState);
+          if (result) {
+            // 成功（新規作成 or 更新）
+            console.log(
+              "[DraftPage] Mock draft saved and set as initial state"
+            );
+            if (typeof result === "string") {
+              console.log("[DraftPage] New draft ID:", result);
             }
+            setLegacyState(mockState);
+          } else {
+            // 保存失敗時もモックを使用（ローカルのみで動作）
+            console.warn(
+              "[DraftPage] Failed to save initial mock, using local state only"
+            );
+            setLegacyState(mockState);
           }
         }
       } catch (error) {
         console.error("[DraftPage] Failed to load initial state:", error);
         // エラー時はモックデータで動作
-        setState(createMockDraftState());
+        setLegacyState(createMockDraftState());
       } finally {
-        setIsLoading(false);
-        console.log("[DraftPage] === Initialization END ===");
+        setLegacyLoading(false);
+        console.log("[DraftPage] === Legacy Initialization END ===");
       }
     };
 
     // ✅ 初期化フラグを立ててから実行
     isInitialized.current = true;
     loadInitialState();
-  }, [draftId, mode, isReadOnly]);
+  }, [draftId]);
 
   // ピック追加ハンドラー（仮ピック）
-  const handlePokemonPick = (pokemonId: string) => {
+  const handlePokemonPick = async (pokemonId: string) => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: Pokemon pick disabled");
       return;
     }
 
-    // BANフェーズ：即座にBAN配列に追加
+    // BANフェーズ：即座に確定
     if (state && state.phase === "ban") {
-      setState((prevState) => {
-        if (!prevState) return prevState;
+      if (!state.currentBanTeam) return;
 
-        const { currentMatch, currentBanTeam, bans } = prevState;
+      console.log(
+        `[DraftPage] BAN selected: ${pokemonId} (Match ${state.currentMatch}, Team ${state.currentBanTeam})`
+      );
 
-        // 通常試合BAN（match 1-3）
-        if (!currentBanTeam) return prevState;
+      // Realtime 対応：draftId がある場合は confirmBan を使用
+      if (draftId) {
+        const orderIndex = confirmedActions.length + 1;
+        const success = await confirmBan(
+          draftId,
+          state.currentBanTeam,
+          pokemonId,
+          orderIndex,
+          state
+        );
 
+        if (!success) {
+          console.error("[DraftPage] Failed to confirm BAN");
+        }
+        // state は Realtime で自動更新される
+      } else {
+        // Legacy: draftId がない場合は従来の処理
+        const { currentMatch, currentBanTeam, bans } = state;
         const newBans = { ...bans };
+
         if (currentMatch === 1) {
           newBans.match1 = {
             ...newBans.match1,
@@ -165,21 +179,17 @@ export default function DraftPage() {
         }
 
         const newState = {
-          ...prevState,
+          ...state,
           bans: newBans,
           updatedAt: new Date().toISOString(),
         };
 
-        console.log(
-          `[DraftPage] BAN added: ${pokemonId} (Match ${currentMatch}, Team ${currentBanTeam})`
-        );
-
+        setLegacyState(newState);
         saveDraftState(newState).catch((error) => {
           console.error("Failed to save draft state after BAN:", error);
         });
+      }
 
-        return newState;
-      });
       return;
     }
 
@@ -194,7 +204,7 @@ export default function DraftPage() {
   };
 
   // BANスキップハンドラー
-  const handleSkipBan = () => {
+  const handleSkipBan = async () => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: BAN skip disabled");
@@ -207,15 +217,25 @@ export default function DraftPage() {
       return;
     }
 
-    // 即座にBAN配列にnullを追加（スキップを表す）
-    setState((prevState) => {
-      if (!prevState) return prevState;
+    const { currentMatch, currentBanTeam } = state;
+    if (!currentBanTeam) return;
 
-      const { currentMatch, currentBanTeam, bans } = prevState;
+    console.log(`[DraftPage] BAN skipped (Match ${currentMatch}, Team ${currentBanTeam})`);
 
-      if (!currentBanTeam) return prevState;
+    // Realtime 対応：draftId がある場合は confirmBanSkip を使用
+    if (draftId) {
+      const orderIndex = confirmedActions.length + 1;
+      const success = await confirmBanSkip(draftId, currentBanTeam, orderIndex, state);
 
+      if (!success) {
+        console.error("[DraftPage] Failed to confirm BAN skip");
+      }
+      // state は Realtime で自動更新される
+    } else {
+      // Legacy: draftId がない場合は従来の処理
+      const { bans } = state;
       const newBans = { ...bans };
+
       if (currentMatch === 1) {
         newBans.match1 = {
           ...newBans.match1,
@@ -234,44 +254,54 @@ export default function DraftPage() {
       }
 
       const newState = {
-        ...prevState,
+        ...state,
         bans: newBans,
         updatedAt: new Date().toISOString(),
       };
 
-      console.log(
-        `[DraftPage] BAN skipped (Match ${currentMatch}, Team ${currentBanTeam})`
-      );
-
+      setLegacyState(newState);
       saveDraftState(newState).catch((error) => {
         console.error("Failed to save draft state after BAN skip:", error);
       });
-
-      return newState;
-    });
+    }
   };
 
   // 仮ピックを確定してSupabaseに保存（PICKフェーズのみ）
-  const handleConfirmPick = () => {
+  const handleConfirmPick = async () => {
     // PICKフェーズ以外では何もしない
     if (!state || state.phase !== "pick") return;
 
     // nullの場合は何もしない
     if (pendingPick === null) return;
 
-    setState((prevState) => {
-      // prevStateがnullの場合は何もしない（通常は起こらない）
-      if (!prevState) return prevState;
+    const pickingTeam = getCurrentPickingTeam(state);
 
-      const { currentMatch } = prevState;
-      const pickingTeam = getCurrentPickingTeam(prevState);
+    console.log(`[DraftPage] Confirming PICK: ${pendingPick.name} (Team ${pickingTeam})`);
 
-      // PICKフェーズ中の処理（重複チェック付き）
+    // Realtime 対応：draftId がある場合は confirmPick を使用
+    if (draftId) {
+      const orderIndex = confirmedActions.length + 1;
+      const success = await confirmPick(
+        draftId,
+        pickingTeam,
+        pendingPick.id,
+        orderIndex,
+        state
+      );
 
-      const newPicks = { ...prevState.picks };
+      if (success) {
+        // pendingPick をクリア（state は Realtime で自動更新される）
+        setPendingPick(null);
+      } else {
+        console.error("[DraftPage] Failed to confirm PICK");
+      }
+    } else {
+      // Legacy: draftId がない場合は従来の処理
+      const { currentMatch } = state;
+      const newPicks = { ...state.picks };
+
       if (currentMatch === 1) {
         const currentPicks = newPicks.match1[pickingTeam];
-        // 重複チェック：既にピックされていなければ追加
         if (!currentPicks.includes(pendingPick.id)) {
           newPicks.match1 = {
             ...newPicks.match1,
@@ -297,26 +327,20 @@ export default function DraftPage() {
       }
 
       const newState = {
-        ...prevState,
+        ...state,
         picks: newPicks,
-        currentTurn: prevState.currentTurn + 1,
+        currentTurn: state.currentTurn + 1,
         updatedAt: new Date().toISOString(),
       };
 
-      // デバッグ：累積BAN数を確認
-      const totalBanned = getBannedPokemon(newState).length;
-      console.log(
-        `[DraftPage] Confirming PICK: ${pendingPick.name} | 累積BAN数: ${totalBanned}`
-      );
+      setLegacyState(newState);
       saveDraftState(newState).catch((error) => {
         console.error("Failed to save draft state after pick:", error);
       });
 
-      return newState;
-    });
-
-    // 仮ピックをクリア
-    setPendingPick(null);
+      // 仮ピックをクリア
+      setPendingPick(null);
+    }
   };
 
   // 仮ピックをキャンセル
@@ -333,7 +357,16 @@ export default function DraftPage() {
       return;
     }
 
-    setState((prevState) => {
+    // Realtime モードでは BAN 取り消しは未対応
+    if (draftId) {
+      console.warn("[DraftPage] BAN cancel is not supported in Realtime mode");
+      return;
+    }
+
+    // Legacy モードのみ対応
+    if (!state) return;
+
+    setLegacyState((prevState) => {
       if (!prevState) return prevState;
 
       const { currentMatch, phase, currentBanTeam } = prevState;
@@ -415,7 +448,16 @@ export default function DraftPage() {
       return;
     }
 
-    setState((prevState) => {
+    // Realtime モードでは BAN 確定（フェーズ遷移）は未対応
+    if (draftId) {
+      console.warn("[DraftPage] BAN phase transition is not supported in Realtime mode yet");
+      return;
+    }
+
+    // Legacy モードのみ対応
+    if (!state) return;
+
+    setLegacyState((prevState) => {
       if (!prevState || prevState.phase !== "ban") return prevState;
 
       const { currentMatch, currentBanTeam, banConfirmed, firstPickByMatch } =
@@ -502,7 +544,16 @@ export default function DraftPage() {
       return;
     }
 
-    setState((prevState) => {
+    // Realtime モードでは試合遷移は未対応
+    if (draftId) {
+      console.warn("[DraftPage] Match transition is not supported in Realtime mode yet");
+      return;
+    }
+
+    // Legacy モードのみ対応
+    if (!state) return;
+
+    setLegacyState((prevState) => {
       // prevStateがnullの場合は何もしない（通常は起こらない）
       if (!prevState) return prevState;
 
@@ -541,6 +592,40 @@ export default function DraftPage() {
       return newState;
     });
   };
+
+  // エラー表示
+  if (error) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(255, 255, 255, 0.87)",
+          color: "#1f2937",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: "clamp(1.2rem, 3vw, 1.5rem)",
+              marginBottom: "1rem",
+              fontWeight: "bold",
+              color: "#dc2626",
+            }}
+          >
+            エラーが発生しました
+          </div>
+          <div
+            style={{ fontSize: "clamp(0.9rem, 2vw, 1rem)", color: "#6b7280" }}
+          >
+            {error}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ローディング中またはstateがnullの場合は描画しない
   if (isLoading || !state) {
