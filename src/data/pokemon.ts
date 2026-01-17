@@ -15,6 +15,7 @@ export const POKEMON_LIST: Pokemon[] = [
   { id: 'clefable', name: 'ピクシー' ,type:'support'},
   { id: 'ninetales_alola', name: 'アローラキュウコン',type :'attack' },
   { id: 'wigglytuff', name: 'プクリン',type:'support' },
+  { id: 'meowth', name:'ニャース', type:'speed'},
   { id: 'psyduck', name: 'コダック',type:'support' },
 
   { id: 'machamp', name: 'カイリキー',type:'balance' },
