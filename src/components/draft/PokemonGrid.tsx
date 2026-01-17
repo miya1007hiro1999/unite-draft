@@ -28,23 +28,12 @@ export default function PokemonGrid({
   // 現在の試合までのPICKを集約
   const allPicksUpToCurrentMatch: string[] = []
 
-  // match1 のピック（常に含める）
-  const match1PicksA = state.picks.match1.A
-  const match1PicksB = state.picks.match1.B
-  allPicksUpToCurrentMatch.push(...match1PicksA, ...match1PicksB)
-
-  // match2 のピック（currentMatch >= 2 の場合）
-  if (state.currentMatch >= 2) {
-    const match2PicksA = state.picks.match2.A
-    const match2PicksB = state.picks.match2.B
-    allPicksUpToCurrentMatch.push(...match2PicksA, ...match2PicksB)
-  }
-
-  // match3 のピック（currentMatch >= 3 の場合）
-  if (state.currentMatch >= 3) {
-    const match3PicksA = state.picks.match3.A
-    const match3PicksB = state.picks.match3.B
-    allPicksUpToCurrentMatch.push(...match3PicksA, ...match3PicksB)
+  // 配列インデックスで全試合のPICKを集約
+  for (let i = 0; i < state.currentMatch; i++) {
+    const matchPicks = state.picks[i]
+    if (matchPicks) {
+      allPicksUpToCurrentMatch.push(...matchPicks.A, ...matchPicks.B)
+    }
   }
 
   // 使用済みポケモン = 全試合のBAN + 現在試合までのPICK

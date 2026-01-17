@@ -1,4 +1,7 @@
-import type { DraftState, Team } from '../types/draft'
+import type { DraftState, Team, MatchBanEntry, MatchPickEntry } from '../types/draft'
+
+// デフォルトの最大試合数（BO5）
+export const DEFAULT_MAX_MATCHES = 5
 
 export interface SetupData {
   tournamentName?: string
@@ -7,6 +10,29 @@ export interface SetupData {
   teamAPlayers: string[]
   teamBPlayers: string[]
   firstPick: Team
+  maxMatches?: number // オプション: デフォルトは5（BO5）
+}
+
+/**
+ * 空の試合配列を生成するヘルパー関数
+ */
+function createEmptyMatchArrays(maxMatches: number, firstPick: Team): {
+  firstPickByMatch: Team[]
+  picks: MatchPickEntry[]
+  bans: MatchBanEntry[]
+} {
+  const firstPickByMatch: Team[] = []
+  const picks: MatchPickEntry[] = []
+  const bans: MatchBanEntry[] = []
+
+  for (let i = 0; i < maxMatches; i++) {
+    // 先攻は交互（match1 = firstPick, match2 = 反対, match3 = firstPick, ...）
+    firstPickByMatch.push(i % 2 === 0 ? firstPick : (firstPick === 'A' ? 'B' : 'A'))
+    picks.push({ A: [], B: [] })
+    bans.push({ A: [], B: [] })
+  }
+
+  return { firstPickByMatch, picks, bans }
 }
 
 /**
@@ -14,6 +40,9 @@ export interface SetupData {
  */
 export function createInitialDraftState(data: SetupData): DraftState {
   const now = new Date().toISOString()
+  const maxMatches = data.maxMatches ?? DEFAULT_MAX_MATCHES
+
+  const { firstPickByMatch, picks, bans } = createEmptyMatchArrays(maxMatches, data.firstPick)
 
   return {
     tournamentName: data.tournamentName,
@@ -27,32 +56,17 @@ export function createInitialDraftState(data: SetupData): DraftState {
         players: data.teamBPlayers,
       },
     },
+    series: {
+      maxMatches,
+    },
     currentMatch: 1, // 第1試合から開始
-    currentTurn: 0,
+    currentTurn: 0, // BANフェーズ: 0-5, PICKフェーズ: 0-9
     phase: 'ban', // BANフェーズから開始
     globalBans: [], // グローバルBAN（廃止、互換性のため残す）
     globalBanConfirmed: true, // グローバルBAN（廃止、互換性のため残す）
-    currentBanTeam: data.firstPick, // 第1試合の先行BANチーム
-    banConfirmed: {
-      match1: { A: false, B: false },
-      match2: { A: false, B: false },
-      match3: { A: false, B: false },
-    },
-    firstPickByMatch: {
-      1: data.firstPick,
-      2: data.firstPick === 'A' ? 'B' : 'A',
-      3: data.firstPick,
-    },
-    picks: {
-      match1: { A: [], B: [] },
-      match2: { A: [], B: [] },
-      match3: { A: [], B: [] },
-    },
-    bans: {
-      match1: { A: [], B: [] },
-      match2: { A: [], B: [] },
-      match3: { A: [], B: [] },
-    },
+    firstPickByMatch,
+    picks,
+    bans,
     updatedAt: now,
   }
 }
@@ -64,6 +78,10 @@ export function createInitialDraftState(data: SetupData): DraftState {
  */
 export function createMockDraftState(): DraftState {
   const now = new Date().toISOString()
+  const maxMatches = DEFAULT_MAX_MATCHES
+  const firstPick: Team = 'A'
+
+  const { firstPickByMatch, picks, bans } = createEmptyMatchArrays(maxMatches, firstPick)
 
   return {
     tournamentName: '第1回サンプルトーナメント',
@@ -77,32 +95,17 @@ export function createMockDraftState(): DraftState {
         players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
       },
     },
-    currentMatch: 1, // 試合1から開始（グローバルBAN完了済み想定）
-    currentTurn: 0,
+    series: {
+      maxMatches,
+    },
+    currentMatch: 1, // 試合1から開始
+    currentTurn: 0, // BANフェーズ turn 0 から開始
     phase: 'ban', // BANフェーズから開始
-    globalBans: [], // グローバルBAN（テスト用は空）
-    globalBanConfirmed: true, // グローバルBAN完了済み
-    currentBanTeam: 'A', // チームAのBAN中
-    banConfirmed: {
-      match1: { A: false, B: false },
-      match2: { A: false, B: false },
-      match3: { A: false, B: false },
-    },
-    firstPickByMatch: {
-      1: 'A',
-      2: 'B',
-      3: 'A',
-    },
-    picks: {
-      match1: { A: [], B: [] },
-      match2: { A: [], B: [] },
-      match3: { A: [], B: [] },
-    },
-    bans: {
-      match1: { A: [], B: [] },
-      match2: { A: [], B: [] },
-      match3: { A: [], B: [] },
-    },
+    globalBans: [],
+    globalBanConfirmed: true,
+    firstPickByMatch,
+    picks,
+    bans,
     updatedAt: now,
   }
 }
@@ -113,6 +116,28 @@ export function createMockDraftState(): DraftState {
  */
 export function createMockDraftStateMatch2(): DraftState {
   const now = new Date().toISOString()
+  const maxMatches = DEFAULT_MAX_MATCHES
+  const firstPick: Team = 'A'
+
+  const { firstPickByMatch, picks, bans } = createEmptyMatchArrays(maxMatches, firstPick)
+
+  // match1 完了済み
+  picks[0] = {
+    A: ['pikachu', 'charizard', 'lucario'],
+    B: ['snorlax', 'greninja', 'cinderace'],
+  }
+  picks[1] = {
+    A: ['garchomp'],
+    B: ['sylveon'],
+  }
+  bans[0] = {
+    A: ['gengar', 'absol', 'zeraora'],
+    B: ['blastoise', 'venusaur', 'slowbro'],
+  }
+  bans[1] = {
+    A: ['talonflame', null, 'dragonite'],
+    B: ['wigglytuff', 'crustle', 'hoopa'],
+  }
 
   return {
     tournamentName: '第1回サンプルトーナメント',
@@ -126,44 +151,17 @@ export function createMockDraftStateMatch2(): DraftState {
         players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
       },
     },
+    series: {
+      maxMatches,
+    },
     currentMatch: 2,
-    currentTurn: 2,
-    phase: 'pick', // PICKフェーズ
-    globalBans: [], // グローバルBAN（テスト用は空）
+    currentTurn: 2, // PICKフェーズ turn 2
+    phase: 'pick',
+    globalBans: [],
     globalBanConfirmed: true,
-    currentBanTeam: null, // BANフェーズ完了
-    banConfirmed: {
-      match1: { A: true, B: true },
-      match2: { A: true, B: true },
-      match3: { A: false, B: false },
-    },
-    firstPickByMatch: {
-      1: 'A',
-      2: 'B',
-      3: 'A',
-    },
-    picks: {
-      match1: {
-        A: ['pikachu', 'charizard', 'lucario'],
-        B: ['snorlax', 'greninja', 'cinderace'],
-      },
-      match2: {
-        A: ['garchomp'],
-        B: ['sylveon'],
-      },
-      match3: { A: [], B: [] },
-    },
-    bans: {
-      match1: {
-        A: ['gengar', 'absol', 'zeraora'],
-        B: ['blastoise', 'venusaur', 'slowbro'],
-      },
-      match2: {
-        A: ['talonflame', null, 'dragonite'],
-        B: ['wigglytuff', 'crustle', 'hoopa'],
-      },
-      match3: { A: [], B: [] },
-    },
+    firstPickByMatch,
+    picks,
+    bans,
     updatedAt: now,
   }
 }
@@ -174,6 +172,37 @@ export function createMockDraftStateMatch2(): DraftState {
  */
 export function createMockDraftStateMatch3(): DraftState {
   const now = new Date().toISOString()
+  const maxMatches = DEFAULT_MAX_MATCHES
+  const firstPick: Team = 'A'
+
+  const { firstPickByMatch, picks, bans } = createEmptyMatchArrays(maxMatches, firstPick)
+
+  // match1, match2 完了済み
+  picks[0] = {
+    A: ['pikachu', 'charizard', 'lucario'],
+    B: ['snorlax', 'greninja', 'cinderace'],
+  }
+  picks[1] = {
+    A: ['garchomp', 'sylveon', 'machamp'],
+    B: ['venusaur', 'blastoise', 'gengar'],
+  }
+  picks[2] = {
+    A: ['gardevoir'],
+    B: [],
+  }
+
+  bans[0] = {
+    A: ['absol', 'zeraora', 'talonflame'],
+    B: ['slowbro', 'wigglytuff', 'crustle'],
+  }
+  bans[1] = {
+    A: ['greedent', 'hoopa', 'tsareena'],
+    B: ['decidueye', 'dragonite', 'espeon'],
+  }
+  bans[2] = {
+    A: ['blaziken', null, 'tyranitar'],
+    B: ['urshifu', 'metagross', 'alakazam'],
+  }
 
   return {
     tournamentName: '第1回サンプルトーナメント',
@@ -187,50 +216,17 @@ export function createMockDraftStateMatch3(): DraftState {
         players: ['PlayerA', 'PlayerB', 'PlayerC', 'PlayerD', 'PlayerE'],
       },
     },
+    series: {
+      maxMatches,
+    },
     currentMatch: 3,
-    currentTurn: 1,
-    phase: 'pick', // PICKフェーズ
-    globalBans: [], // グローバルBAN（テスト用は空）
+    currentTurn: 1, // PICKフェーズ turn 1
+    phase: 'pick',
+    globalBans: [],
     globalBanConfirmed: true,
-    currentBanTeam: null, // BANフェーズ完了
-    banConfirmed: {
-      match1: { A: true, B: true },
-      match2: { A: true, B: true },
-      match3: { A: true, B: true },
-    },
-    firstPickByMatch: {
-      1: 'A',
-      2: 'B',
-      3: 'A',
-    },
-    picks: {
-      match1: {
-        A: ['pikachu', 'charizard', 'lucario'],
-        B: ['snorlax', 'greninja', 'cinderace'],
-      },
-      match2: {
-        A: ['garchomp', 'sylveon', 'machamp'],
-        B: ['venusaur', 'blastoise', 'gengar'],
-      },
-      match3: {
-        A: ['gardevoir'],
-        B: [],
-      },
-    },
-    bans: {
-      match1: {
-        A: ['absol', 'zeraora', 'talonflame'],
-        B: ['slowbro', 'wigglytuff', 'crustle'],
-      },
-      match2: {
-        A: ['greedent', 'hoopa', 'tsareena'],
-        B: ['decidueye', 'dragonite', 'espeon'],
-      },
-      match3: {
-        A: ['blaziken', null, 'tyranitar'],
-        B: ['urshifu', 'metagross', 'alakazam'],
-      },
-    },
+    firstPickByMatch,
+    picks,
+    bans,
     updatedAt: now,
   }
 }

@@ -1,9 +1,14 @@
 import BanSlot from './BanSlot'
-import type { BanEntry } from '../../types/draft'
+import type { BanEntry, Team } from '../../types/draft'
+import { getTurnNumberByTeamIndex } from '../../utils/draftLogic'
 
 interface BanRowProps {
   teamColor: string
   banEntries: BanEntry[]
+  team: Team // このチーム
+  banSequence: Team[] // BAN順シーケンス（例: ['A', 'B', 'A', 'B', 'A', 'B']）
+  currentTurn: number // 現在のターン（0-based）
+  phase: 'ban' | 'pick' // 現在のフェーズ
   isCancellable?: boolean // 削除可能かどうか
   onCancelBan?: (banIndex: number) => void // 削除ハンドラー
 }
@@ -11,6 +16,10 @@ interface BanRowProps {
 export default function BanRow({
   teamColor,
   banEntries,
+  team,
+  banSequence,
+  currentTurn,
+  phase,
   isCancellable = false,
   onCancelBan,
 }: BanRowProps) {
@@ -51,17 +60,31 @@ export default function BanRow({
           justifyContent: 'flex-start',
         }}
       >
-        {slots.map((entry, index) => (
-          <BanSlot
-            key={index}
-            entry={entry}
-            teamColor={teamColor}
-            isCancellable={isCancellable && entry !== undefined}
-            onCancel={
-              onCancelBan && entry !== undefined ? () => onCancelBan(index) : undefined
-            }
-          />
-        ))}
+        {slots.map((entry, index) => {
+          // シーケンス内での turn 番号を計算
+          const turnNumber = getTurnNumberByTeamIndex(team, index, banSequence)
+
+          // 現在選択中かどうか判定
+          // BANフェーズで、このスロットのturn番号が現在のターン+1（1-based）で、未確定の場合
+          const isCurrentPicker =
+            phase === 'ban' &&
+            entry === undefined &&
+            turnNumber === currentTurn + 1
+
+          return (
+            <BanSlot
+              key={index}
+              entry={entry}
+              teamColor={teamColor}
+              slotNumber={turnNumber}
+              isCurrentPicker={isCurrentPicker}
+              isCancellable={isCancellable && entry !== undefined}
+              onCancel={
+                onCancelBan && entry !== undefined ? () => onCancelBan(index) : undefined
+              }
+            />
+          )
+        })}
       </div>
     </div>
   )

@@ -1,4 +1,12 @@
 import type { DraftState, Team } from '../types/draft'
+import { matchToIndex } from '../types/draft'
+import { POKEMON_LIST } from '../data/pokemon'
+
+// BANフェーズの総ターン数（各チーム3体ずつ、合計6体）
+export const BAN_PHASE_TOTAL_TURNS = 6
+
+// PICKフェーズの総ターン数（各チーム5体ずつ、合計10体）
+export const PICK_PHASE_TOTAL_TURNS = 10
 
 /**
  * BANされたポケモンID一覧を取得（累積）
@@ -20,40 +28,30 @@ export function getBannedPokemon(state: DraftState): string[] {
   // グローバルBANを常に含める（全試合共通）
   bannedList.push(...globalBans)
 
-  // 第1試合中：match1のBANのみ（nullを除外）
-  if (currentMatch === 1) {
-    bannedList.push(
-      ...bans.match1.A.filter((id): id is string => id !== null),
-      ...bans.match1.B.filter((id): id is string => id !== null)
-    )
+  // グローバルBANフェーズ（currentMatch === 0）の場合はグローバルBANのみ返す
+  if (currentMatch === 0) {
+    return Array.from(new Set(bannedList))
   }
 
-  // 第2試合中：match1のBAN + match1のPICK + match2のBAN
-  if (currentMatch === 2) {
-    bannedList.push(
-      ...bans.match1.A.filter((id): id is string => id !== null),
-      ...bans.match1.B.filter((id): id is string => id !== null),
-      ...picks.match1.A,
-      ...picks.match1.B,
-      ...bans.match2.A.filter((id): id is string => id !== null),
-      ...bans.match2.B.filter((id): id is string => id !== null)
-    )
-  }
+  // 現在の試合までのBANとPICKを累積
+  const idx = matchToIndex(currentMatch)
 
-  // 第3試合中：すべてのBAN + match1とmatch2のPICK
-  if (currentMatch === 3) {
-    bannedList.push(
-      ...bans.match1.A.filter((id): id is string => id !== null),
-      ...bans.match1.B.filter((id): id is string => id !== null),
-      ...picks.match1.A,
-      ...picks.match1.B,
-      ...bans.match2.A.filter((id): id is string => id !== null),
-      ...bans.match2.B.filter((id): id is string => id !== null),
-      ...picks.match2.A,
-      ...picks.match2.B,
-      ...bans.match3.A.filter((id): id is string => id !== null),
-      ...bans.match3.B.filter((id): id is string => id !== null)
-    )
+  for (let i = 0; i <= idx; i++) {
+    const matchBans = bans[i]
+    const matchPicks = picks[i]
+
+    if (matchBans) {
+      // BANを追加（nullを除外）
+      bannedList.push(
+        ...matchBans.A.filter((id): id is string => id !== null),
+        ...matchBans.B.filter((id): id is string => id !== null)
+      )
+    }
+
+    // 過去の試合のPICKを追加（現在の試合のPICKは含めない）
+    if (i < idx && matchPicks) {
+      bannedList.push(...matchPicks.A, ...matchPicks.B)
+    }
   }
 
   // 重複を除去してユニークなリストを返す
@@ -68,22 +66,18 @@ export function getBannedPokemon(state: DraftState): string[] {
  */
 export function getCurrentMatchBans(state: DraftState): string[] {
   const { currentMatch, bans } = state
-  if (currentMatch === 1)
-    return [
-      ...bans.match1.A.filter((id): id is string => id !== null),
-      ...bans.match1.B.filter((id): id is string => id !== null),
-    ]
-  if (currentMatch === 2)
-    return [
-      ...bans.match2.A.filter((id): id is string => id !== null),
-      ...bans.match2.B.filter((id): id is string => id !== null),
-    ]
-  if (currentMatch === 3)
-    return [
-      ...bans.match3.A.filter((id): id is string => id !== null),
-      ...bans.match3.B.filter((id): id is string => id !== null),
-    ]
-  return []
+
+  if (currentMatch === 0) return []
+
+  const idx = matchToIndex(currentMatch)
+  const matchBans = bans[idx]
+
+  if (!matchBans) return []
+
+  return [
+    ...matchBans.A.filter((id): id is string => id !== null),
+    ...matchBans.B.filter((id): id is string => id !== null),
+  ]
 }
 
 /**
@@ -98,32 +92,36 @@ export function getCurrentMatchBansByTeam(
   team: Team
 ): string[] {
   const { currentMatch, bans } = state
-  if (currentMatch === 1)
-    return bans.match1[team].filter((id): id is string => id !== null)
-  if (currentMatch === 2)
-    return bans.match2[team].filter((id): id is string => id !== null)
-  if (currentMatch === 3)
-    return bans.match3[team].filter((id): id is string => id !== null)
-  return []
+
+  if (currentMatch === 0) return []
+
+  const idx = matchToIndex(currentMatch)
+  const matchBans = bans[idx]
+
+  if (!matchBans) return []
+
+  return matchBans[team].filter((id): id is string => id !== null)
 }
 
 /**
  * BANフェーズの順番シーケンスを取得
  *
- * BAN順：A → B → A → B → A → B（各チーム3体ずつ、合計6体）
+ * BAN順：先攻 → 後攻 → 先攻 → 後攻 → 先攻 → 後攻（各チーム3体ずつ、合計6体）
  *
- * @param match - 試合番号（1, 2, 3）
- * @param firstPickByMatch - 各試合の先攻チーム情報
+ * @param matchIndex - 試合インデックス（0-based）
+ * @param firstPickByMatch - 各試合の先攻チーム配列
  * @returns BAN順の配列（例: ['A', 'B', 'A', 'B', 'A', 'B']）
  */
 export function getBanSequenceByMatch(
-  match: 1 | 2 | 3,
-  firstPickByMatch: { 1: Team; 2: Team; 3: Team }
+  matchIndex: number,
+  firstPickByMatch: Team[]
 ): Team[] {
-  const firstPick = firstPickByMatch[match]
+  const firstPick = firstPickByMatch[matchIndex]
+  if (!firstPick) return []
+
   const secondPick: Team = firstPick === 'A' ? 'B' : 'A'
 
-  // BAN順シーケンス：先攻 → 後攻 を3回繰り返し
+  // BAN順シーケンス：先攻 → 後攻 を3回繰り返し（ABABAB）
   return [
     firstPick,
     secondPick,
@@ -135,51 +133,29 @@ export function getBanSequenceByMatch(
 }
 
 /**
- * 現在BAN中のチームを取得
- *
- * @param state - 現在のDraftState
- * @returns 現在BAN中のチーム（'A' | 'B'）
- */
-export function getCurrentBanningTeam(state: DraftState): Team {
-  const { currentMatch, currentTurn, firstPickByMatch } = state
-
-  // グローバルBANフェーズ（match 0）では先行チームを返す
-  if (currentMatch === 0) {
-    return firstPickByMatch[1] // デフォルトで試合1の先行チームを返す
-  }
-
-  const banSequence = getBanSequenceByMatch(currentMatch, firstPickByMatch)
-
-  // currentTurnがシーケンス範囲外の場合は最後のチームを返す
-  if (currentTurn >= banSequence.length) {
-    return banSequence[banSequence.length - 1]
-  }
-
-  return banSequence[currentTurn]
-}
-
-/**
  * BANフェーズが完了したかどうかを判定
  *
- * 条件：両チームとも最終確定済み
+ * 条件：currentTurn >= 6（ABABAB進行で6ターン完了）
+ * ※ BANフェーズ中にのみ意味を持つ
  *
  * @param state - 現在のDraftState
  * @returns BANフェーズ完了ならtrue
  */
 export function isBanPhaseComplete(state: DraftState): boolean {
-  const { currentMatch, banConfirmed } = state
+  const { currentMatch, phase, currentTurn } = state
 
   // グローバルBANフェーズの場合
   if (currentMatch === 0) {
     return state.globalBanConfirmed
   }
 
-  // 通常試合の場合：両チームが確定済みならBAN完了
-  if (currentMatch === 1) return banConfirmed.match1.A && banConfirmed.match1.B
-  if (currentMatch === 2) return banConfirmed.match2.A && banConfirmed.match2.B
-  if (currentMatch === 3) return banConfirmed.match3.A && banConfirmed.match3.B
+  // PICKフェーズに既に移行している場合は完了済み
+  if (phase === 'pick') {
+    return true
+  }
 
-  return false
+  // BANフェーズ中: currentTurn >= 6 で完了
+  return currentTurn >= BAN_PHASE_TOTAL_TURNS
 }
 
 /**
@@ -190,15 +166,17 @@ export function isBanPhaseComplete(state: DraftState): boolean {
  * - 第2試合：BAABBAABBA（第1試合のA/B反転）
  * - 第3試合：ABBAABBAAB
  *
- * @param match - 試合番号（1, 2, 3）
- * @param firstPickByMatch - 各試合の先攻チーム情報
+ * @param matchIndex - 試合インデックス（0-based）
+ * @param firstPickByMatch - 各試合の先攻チーム配列
  * @returns ピック順の配列（例: ['A', 'B', 'B', 'A', ...]）
  */
 export function getPickSequenceByMatch(
-  match: 1 | 2 | 3,
-  firstPickByMatch: { 1: Team; 2: Team; 3: Team }
+  matchIndex: number,
+  firstPickByMatch: Team[]
 ): Team[] {
-  const firstPick = firstPickByMatch[match]
+  const firstPick = firstPickByMatch[matchIndex]
+  if (!firstPick) return []
+
   const secondPick: Team = firstPick === 'A' ? 'B' : 'A'
 
   // 基本シーケンス（先攻基準）：ABBAABBAAB
@@ -219,39 +197,39 @@ export function getPickSequenceByMatch(
  * 現在ピック中/BAN中のチームを取得
  *
  * phaseに応じてBAN中のチームまたはピック中のチームを返す
+ * currentTurn とシーケンス関数を使用して動的に計算
  *
  * @param state - 現在のDraftState
  * @returns 現在ピック中/BAN中のチーム（'A' | 'B'）
  */
 export function getCurrentPickingTeam(state: DraftState): Team {
-  // BANフェーズ中はcurrentBanTeamを返す
-  if (state.phase === 'ban') {
-    // currentBanTeamがnullの場合（グローバルBAN等）はfallbackとして先行チームを返す
-    if (state.currentBanTeam) {
-      return state.currentBanTeam
-    }
-    // fallback: 先行チームを返す
-    const { currentMatch, firstPickByMatch } = state
-    if (currentMatch >= 1 && currentMatch <= 3) {
-      return firstPickByMatch[currentMatch as 1 | 2 | 3]
-    }
-    // match 0の場合はデフォルトでAを返す（本来は呼ばれないはず）
-    return 'A'
-  }
+  const { currentMatch, currentTurn, firstPickByMatch, phase } = state
 
-  // PICKフェーズ中はピック中のチームを返す
-  const { currentMatch, currentTurn, firstPickByMatch } = state
-
-  // グローバルBANフェーズ（match 0）ではPICKフェーズにならないが、安全のため分岐
+  // グローバルBANフェーズ（match 0）では先行チームを返す
   if (currentMatch === 0) {
-    return firstPickByMatch[1] // デフォルトで試合1の先行チームを返す
+    return firstPickByMatch[0] ?? 'A'
   }
 
-  const pickSequence = getPickSequenceByMatch(currentMatch, firstPickByMatch)
+  const idx = matchToIndex(currentMatch)
+
+  // BANフェーズ中
+  if (phase === 'ban') {
+    const banSequence = getBanSequenceByMatch(idx, firstPickByMatch)
+
+    // currentTurnがシーケンス範囲外の場合は最後のチームを返す
+    if (currentTurn >= banSequence.length) {
+      return banSequence[banSequence.length - 1] ?? firstPickByMatch[idx] ?? 'A'
+    }
+
+    return banSequence[currentTurn]
+  }
+
+  // PICKフェーズ中
+  const pickSequence = getPickSequenceByMatch(idx, firstPickByMatch)
 
   // currentTurnがシーケンス範囲外の場合は最後のチームを返す
   if (currentTurn >= pickSequence.length) {
-    return pickSequence[pickSequence.length - 1]
+    return pickSequence[pickSequence.length - 1] ?? firstPickByMatch[idx] ?? 'A'
   }
 
   return pickSequence[currentTurn]
@@ -266,10 +244,15 @@ export function getCurrentPickingTeam(state: DraftState): Team {
  */
 export function getCurrentMatchPicks(state: DraftState, team: Team): string[] {
   const { currentMatch, picks } = state
-  if (currentMatch === 1) return picks.match1[team]
-  if (currentMatch === 2) return picks.match2[team]
-  if (currentMatch === 3) return picks.match3[team]
-  return []
+
+  if (currentMatch === 0) return []
+
+  const idx = matchToIndex(currentMatch)
+  const matchPicks = picks[idx]
+
+  if (!matchPicks) return []
+
+  return matchPicks[team]
 }
 
 /**
@@ -310,8 +293,6 @@ export function isPokemonSelectable(
     return false
   }
 
-  const currentTeam = getCurrentPickingTeam(state)
-
   // BANフェーズ中
   if (state.phase === 'ban') {
     // BANフェーズが完了している場合は選択不可
@@ -319,25 +300,10 @@ export function isPokemonSelectable(
       return false
     }
 
-    const { currentMatch, banConfirmed } = state
-
-    // 現在のチームが既に確定済みの場合は選択不可
-    if (currentMatch === 1 && banConfirmed.match1[currentTeam]) return false
-    if (currentMatch === 2 && banConfirmed.match2[currentTeam]) return false
-    if (currentMatch === 3 && banConfirmed.match3[currentTeam]) return false
-
     const currentMatchBans = getCurrentMatchBans(state)
-    const currentTeamBans = getCurrentMatchBansByTeam(state, currentTeam)
 
     // すでにBANされている
     if (currentMatchBans.includes(pokemonId)) {
-      return false
-    }
-
-    // BAN枠が埋まっている（最大3体）
-    // 仮確定状態（3体選択済みだが未確定）でも、新規追加は不可
-    // 変更する場合は既存BANを削除してから追加する
-    if (currentTeamBans.length >= 3) {
       return false
     }
 
@@ -353,9 +319,10 @@ export function isPokemonSelectable(
   const bannedPokemon = getBannedPokemon(state)
   const teamAPicks = getCurrentMatchPicks(state, 'A')
   const teamBPicks = getCurrentMatchPicks(state, 'B')
+  const currentTeam = getCurrentPickingTeam(state)
   const currentTeamPicks = getCurrentMatchPicks(state, currentTeam)
 
-  // BANされている（getBannedPokemonがglobalBansを含むので、ここで再チェック不要だが明示的に）
+  // BANされている
   if (bannedPokemon.includes(pokemonId)) {
     return false
   }
@@ -383,17 +350,116 @@ export function isPokemonSelectable(
  */
 export function isMatchComplete(state: DraftState): boolean {
   // PICKフェーズでのみ試合終了を判定
-  return state.phase === 'pick' && state.currentTurn === 10
+  return state.phase === 'pick' && state.currentTurn >= PICK_PHASE_TOTAL_TURNS
 }
 
 /**
  * ドラフト全体が完了したかどうかを判定
  *
- * 条件：第3試合が終了している
+ * 条件：最終試合が終了している
  *
  * @param state - 現在のDraftState
  * @returns ドラフト完了ならtrue
  */
 export function isDraftComplete(state: DraftState): boolean {
-  return state.currentMatch === 3 && isMatchComplete(state)
+  const maxMatches = state.series.maxMatches
+  return state.currentMatch === maxMatches && isMatchComplete(state)
+}
+
+/**
+ * 現在の試合のBANエントリを取得（nullを含む）
+ *
+ * @param state - 現在のDraftState
+ * @param team - チーム（'A' | 'B'）
+ * @returns BANエントリの配列（nullを含む）
+ */
+export function getCurrentMatchBanEntries(
+  state: DraftState,
+  team: Team
+): (string | null)[] {
+  const { currentMatch, bans } = state
+
+  if (currentMatch === 0) return []
+
+  const idx = matchToIndex(currentMatch)
+  const matchBans = bans[idx]
+
+  if (!matchBans) return []
+
+  return matchBans[team]
+}
+
+/**
+ * ランダムにピック可能なポケモンを1体選ぶ
+ *
+ * 以下を除外して候補を作る:
+ * - BAN 済みポケモン
+ * - すでに PICK 済みポケモン
+ *
+ * @param state - 現在のDraftState
+ * @returns ランダムに選ばれたポケモンID
+ */
+export function pickRandomPokemon(state: DraftState): string {
+  // BAN済みポケモン（グローバルBAN + 過去のBAN + 過去のPICK）
+  const bannedPokemon = getBannedPokemon(state)
+
+  // 現在の試合でPICK済みのポケモン
+  const teamAPicks = getCurrentMatchPicks(state, 'A')
+  const teamBPicks = getCurrentMatchPicks(state, 'B')
+
+  // 除外リストを作成
+  const excludedIds = new Set([
+    ...bannedPokemon,
+    ...teamAPicks,
+    ...teamBPicks,
+  ])
+
+  // 候補を作成（除外リストに含まれないポケモン）
+  const candidates = POKEMON_LIST.filter((pokemon) => !excludedIds.has(pokemon.id))
+
+  if (candidates.length === 0) {
+    console.error('[pickRandomPokemon] No candidates available!')
+    // フォールバック：最初のポケモンを返す
+    return POKEMON_LIST[0].id
+  }
+
+  // ランダムに1体選ぶ
+  const randomIndex = Math.floor(Math.random() * candidates.length)
+  const selected = candidates[randomIndex]
+
+  console.log(`[pickRandomPokemon] Selected: ${selected.name} (${selected.id})`)
+
+  return selected.id
+}
+
+/**
+ * 指定チームがシーケンス内で indexInTeam 回目に登場する turn 番号を取得
+ *
+ * 例: sequence = ['A', 'B', 'A', 'B', 'A', 'B']
+ * - getTurnNumberByTeamIndex('A', 0, sequence) → 1 (最初のA)
+ * - getTurnNumberByTeamIndex('A', 1, sequence) → 3 (2番目のA)
+ * - getTurnNumberByTeamIndex('B', 0, sequence) → 2 (最初のB)
+ *
+ * @param team - チーム ('A' | 'B')
+ * @param indexInTeam - チーム内でのインデックス (0-based)
+ * @param sequence - 進行順シーケンス
+ * @returns turn 番号 (1-based)、見つからない場合は -1
+ */
+export function getTurnNumberByTeamIndex(
+  team: Team,
+  indexInTeam: number,
+  sequence: Team[]
+): number {
+  let count = 0
+
+  for (let i = 0; i < sequence.length; i++) {
+    if (sequence[i] === team) {
+      if (count === indexInTeam) {
+        return i + 1 // 1-based
+      }
+      count++
+    }
+  }
+
+  return -1 // 見つからない場合
 }

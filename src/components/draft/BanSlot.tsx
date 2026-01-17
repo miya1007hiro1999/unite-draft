@@ -5,6 +5,8 @@ import type { BanEntry } from '../../types/draft'
 interface BanSlotProps {
   entry: BanEntry | undefined // undefined = 未確定
   teamColor: string
+  slotNumber: number // 1-based の枠番号
+  isCurrentPicker?: boolean // 現在選択中かどうか
   isCancellable?: boolean // 削除可能かどうか（仮確定中のみtrue）
   onCancel?: () => void // 削除ハンドラー
 }
@@ -12,10 +14,12 @@ interface BanSlotProps {
 export default function BanSlot({
   entry,
   teamColor,
+  slotNumber,
+  isCurrentPicker = false,
   isCancellable = false,
   onCancel,
 }: BanSlotProps) {
-  // 未確定の場合
+  // 未確定の場合：番号を表示（選択中の場合はハイライト）
   if (entry === undefined) {
     return (
       <div
@@ -23,14 +27,72 @@ export default function BanSlot({
           width: '50px',
           height: '50px',
           borderRadius: '3px',
-          border: `1px dashed #d1d5db`,
-          background: '#ffffff',
+          border: isCurrentPicker ? `2px solid ${teamColor}` : `1px dashed ${teamColor}60`,
+          background: isCurrentPicker
+            ? `linear-gradient(135deg, ${teamColor}08 0%, ${teamColor}04 100%)`
+            : '#ffffff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
+          boxShadow: isCurrentPicker
+            ? `0 0 16px 4px ${teamColor}60, 0 0 0 3px ${teamColor}40, 0 1px 3px rgba(0, 0, 0, 0.1)`
+            : 'none',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isCurrentPicker ? 'scale(1.05)' : 'scale(1)',
         }}
       >
-        <div style={{ fontSize: '0.4rem', color: '#9ca3af' }}>?</div>
+        {/* BANNING ラベル */}
+        {isCurrentPicker && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: teamColor,
+              color: 'white',
+              padding: '0.1rem 0.3rem',
+              borderRadius: '4px',
+              fontSize: '0.4rem',
+              fontWeight: 'bold',
+              letterSpacing: '0.05em',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            BANNING
+          </div>
+        )}
+        <div
+          style={{
+            fontSize: '0.6rem',
+            fontWeight: 'bold',
+            color: teamColor,
+            textAlign: 'center',
+            lineHeight: 1.2,
+          }}
+        >
+          <div style={{ fontSize: '0.45rem', opacity: 0.7 }}>BAN</div>
+          <div>{slotNumber}</div>
+        </div>
+
+        {/* アニメーション用のCSS */}
+        {isCurrentPicker && (
+          <style>{`
+            @keyframes pulse {
+              0%, 100% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+              }
+              50% {
+                opacity: 0.8;
+                transform: translateX(-50%) scale(1.05);
+              }
+            }
+          `}</style>
+        )}
       </div>
     )
   }

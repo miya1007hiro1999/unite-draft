@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useDraftRealtime } from '../hooks/useDraftRealtime'
-import { confirmPick, confirmBan, confirmBanSkip } from '../lib/draftActions'
+import { confirmPick, confirmBan } from '../lib/draftActions'
 import type { Pokemon } from '../types/pokemon'
 import { getPokemonById } from '../data/pokemon'
 import { getCurrentPickingTeam } from '../utils/draftLogic'
@@ -69,44 +69,28 @@ export default function DraftPageRealtime() {
     }
   }
 
-  // BAN確定ハンドラー
-  const handleConfirmBan = async (pokemonId: string) => {
+  // BAN確定ハンドラー（ABABAB turn制）
+  const handleConfirmBan = async (pokemonId: string | null) => {
     if (!draftState || !draftId) return
 
-    const orderIndex = confirmedActions.length + 1
-    const banningTeam = draftState.currentBanTeam
-
-    if (!banningTeam) return
-
-    console.log('[DraftPageRealtime] Confirming ban:', pokemonId)
+    console.log('[DraftPageRealtime] Confirming ban:', pokemonId ?? 'SKIP')
 
     // DB に INSERT（setState は呼ばない）
-    const success = await confirmBan(
-      draftId,
-      banningTeam,
-      pokemonId,
-      orderIndex,
-      draftState
-    )
+    const success = await confirmBan(draftId, pokemonId, draftState)
 
     if (!success) {
       console.error('[DraftPageRealtime] Failed to confirm ban')
     }
   }
 
-  // BANスキップハンドラー
+  // BANスキップハンドラー（ABABAB turn制）
   const handleSkipBan = async () => {
     if (!draftState || !draftId) return
 
-    const orderIndex = confirmedActions.length + 1
-    const banningTeam = draftState.currentBanTeam
-
-    if (!banningTeam) return
-
     console.log('[DraftPageRealtime] Skipping ban')
 
-    // DB に INSERT（setState は呼ばない）
-    const success = await confirmBanSkip(draftId, banningTeam, orderIndex, draftState)
+    // null を渡してスキップ
+    const success = await confirmBan(draftId, null, draftState)
 
     if (!success) {
       console.error('[DraftPageRealtime] Failed to skip ban')

@@ -1,17 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { createMockDraftState } from "../utils/draftState";
-import type { DraftState, BanEntry, Team } from "../types/draft";
+import type { DraftState } from "../types/draft";
+import { matchToIndex } from "../types/draft";
 import PokemonGrid from "../components/draft/PokemonGrid";
 import {
   getBannedPokemon,
   getCurrentPickingTeam,
   getCurrentMatchPicks,
   getCurrentMatchBans,
-  getCurrentMatchBansByTeam,
   isMatchComplete,
   isDraftComplete,
+  getCurrentMatchBanEntries,
+  isBanPhaseComplete,
+  BAN_PHASE_TOTAL_TURNS,
+  pickRandomPokemon,
+  getBanSequenceByMatch,
+  getPickSequenceByMatch,
 } from "../utils/draftLogic";
+import { useTurnTimer } from "../hooks/useTurnTimer";
 import PlayerCardList from "../components/draft/PlayerCardList";
 import { getPokemonById } from "../data/pokemon";
 import {
@@ -20,10 +27,13 @@ import {
 } from "../lib/draftStorage";
 import type { Pokemon } from "../types/pokemon";
 import { useDraftRealtime } from "../hooks/useDraftRealtime";
-import { confirmPick, confirmBan, confirmBanSkip, confirmBanPhaseComplete, goToNextMatch } from "../lib/draftActions";
+import { confirmPick, confirmBan, goToNextMatch } from "../lib/draftActions";
 
-// Phase型定義
-type Phase = "ban" | "pick";
+// PendingBan型定義（ABABAB turn制用）
+type PendingBanState =
+  | { type: "none" }
+  | { type: "pokemon"; pokemonId: string }
+  | { type: "skip" };
 
 export default function DraftPage() {
   // URLパラメータから draftId と mode を取得
@@ -52,7 +62,64 @@ export default function DraftPage() {
   const isLoading = draftId ? realtimeLoading : legacyLoading;
 
   // 未確定 state はローカルのみ
-  const [pendingPick, setPendingPick] = useState<Pokemon | null>(null); // null = BANスキップ
+  const [pendingPick, setPendingPick] = useState<Pokemon | null>(null);
+  const [pendingBan, setPendingBan] = useState<PendingBanState>({ type: "none" });
+
+  // タイムアウト処理（admin のみ実行）
+  const handleTimeout = useCallback(async () => {
+    if (!state || !draftId) return;
+
+    // 試合が終了している場合は何もしない
+    if (isMatchComplete(state) || isDraftComplete(state)) {
+      console.log("[DraftPage] Timeout skipped: match/draft already complete");
+      return;
+    }
+
+    console.log(`[DraftPage] Timeout! phase=${state.phase}`);
+
+    if (state.phase === "pick") {
+      // PICK フェーズ：ランダムポケモンを選んで confirmPick()
+      const randomPokemonId = pickRandomPokemon(state);
+      const pickingTeam = getCurrentPickingTeam(state);
+
+      console.log(`[DraftPage] Auto-pick: ${randomPokemonId} for Team ${pickingTeam}`);
+
+      const success = await confirmPick(
+        draftId,
+        pickingTeam,
+        randomPokemonId,
+        confirmedActions.length + 1,
+        state
+      );
+
+      if (!success) {
+        console.error("[DraftPage] Failed to auto-pick on timeout");
+      }
+
+      // pendingPick をクリア
+      setPendingPick(null);
+    } else if (state.phase === "ban") {
+      // BAN フェーズ：スキップとして confirmBan(draftId, null, state)
+      console.log("[DraftPage] Auto-skip BAN on timeout");
+
+      const success = await confirmBan(draftId, null, state);
+
+      if (!success) {
+        console.error("[DraftPage] Failed to auto-skip BAN on timeout");
+      }
+
+      // pendingBan をクリア
+      setPendingBan({ type: "none" });
+    }
+  }, [state, draftId, confirmedActions.length]);
+
+  // ターンタイマー（admin のみカウントダウン、観戦者は表示のみ）
+  const timeLeft = useTurnTimer({
+    currentTurn: state?.currentTurn ?? 0,
+    phase: state?.phase ?? "ban",
+    isAdmin: !isReadOnly && !!draftId,
+    onTimeout: handleTimeout,
+  });
 
   // React 18 StrictMode による useEffect 二重実行を防ぐためのガード
   // 開発環境でも初期化が一度だけ実行されることを保証
@@ -125,71 +192,23 @@ export default function DraftPage() {
     loadInitialState();
   }, [draftId]);
 
-  // ピック追加ハンドラー（仮ピック）
-  const handlePokemonPick = async (pokemonId: string) => {
+  // ピック追加ハンドラー（仮ピック / 仮BAN）
+  const handlePokemonPick = (pokemonId: string) => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: Pokemon pick disabled");
       return;
     }
 
-    // BANフェーズ：即座に確定
-    if (state && state.phase === "ban") {
-      if (!state.currentBanTeam) return;
+    if (!state) return;
 
+    // BANフェーズ：pendingBan にセット（ABABAB turn制）
+    if (state.phase === "ban") {
+      const currentTeam = getCurrentPickingTeam(state);
       console.log(
-        `[DraftPage] BAN selected: ${pokemonId} (Match ${state.currentMatch}, Team ${state.currentBanTeam})`
+        `[DraftPage] BAN selected: ${pokemonId} (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`
       );
-
-      // Realtime 対応：draftId がある場合は confirmBan を使用
-      if (draftId) {
-        const orderIndex = confirmedActions.length + 1;
-        const success = await confirmBan(
-          draftId,
-          state.currentBanTeam,
-          pokemonId,
-          orderIndex,
-          state
-        );
-
-        if (!success) {
-          console.error("[DraftPage] Failed to confirm BAN");
-        }
-        // state は Realtime で自動更新される
-      } else {
-        // Legacy: draftId がない場合は従来の処理
-        const { currentMatch, currentBanTeam, bans } = state;
-        const newBans = { ...bans };
-
-        if (currentMatch === 1) {
-          newBans.match1 = {
-            ...newBans.match1,
-            [currentBanTeam]: [...newBans.match1[currentBanTeam], pokemonId],
-          };
-        } else if (currentMatch === 2) {
-          newBans.match2 = {
-            ...newBans.match2,
-            [currentBanTeam]: [...newBans.match2[currentBanTeam], pokemonId],
-          };
-        } else if (currentMatch === 3) {
-          newBans.match3 = {
-            ...newBans.match3,
-            [currentBanTeam]: [...newBans.match3[currentBanTeam], pokemonId],
-          };
-        }
-
-        const newState = {
-          ...state,
-          bans: newBans,
-          updatedAt: new Date().toISOString(),
-        };
-
-        setLegacyState(newState);
-        saveDraftState(newState).catch((error) => {
-          console.error("Failed to save draft state after BAN:", error);
-        });
-      }
-
+      setPendingBan({ type: "pokemon", pokemonId });
       return;
     }
 
@@ -203,8 +222,8 @@ export default function DraftPage() {
     }
   };
 
-  // BANスキップハンドラー
-  const handleSkipBan = async () => {
+  // BANスキップ選択ハンドラー（pendingBan に skip をセット）
+  const handleSkipBan = () => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
       console.warn("[DraftPage] Read-only mode: BAN skip disabled");
@@ -217,53 +236,9 @@ export default function DraftPage() {
       return;
     }
 
-    const { currentMatch, currentBanTeam } = state;
-    if (!currentBanTeam) return;
-
-    console.log(`[DraftPage] BAN skipped (Match ${currentMatch}, Team ${currentBanTeam})`);
-
-    // Realtime 対応：draftId がある場合は confirmBanSkip を使用
-    if (draftId) {
-      const orderIndex = confirmedActions.length + 1;
-      const success = await confirmBanSkip(draftId, currentBanTeam, orderIndex, state);
-
-      if (!success) {
-        console.error("[DraftPage] Failed to confirm BAN skip");
-      }
-      // state は Realtime で自動更新される
-    } else {
-      // Legacy: draftId がない場合は従来の処理
-      const { bans } = state;
-      const newBans = { ...bans };
-
-      if (currentMatch === 1) {
-        newBans.match1 = {
-          ...newBans.match1,
-          [currentBanTeam]: [...newBans.match1[currentBanTeam], null],
-        };
-      } else if (currentMatch === 2) {
-        newBans.match2 = {
-          ...newBans.match2,
-          [currentBanTeam]: [...newBans.match2[currentBanTeam], null],
-        };
-      } else if (currentMatch === 3) {
-        newBans.match3 = {
-          ...newBans.match3,
-          [currentBanTeam]: [...newBans.match3[currentBanTeam], null],
-        };
-      }
-
-      const newState = {
-        ...state,
-        bans: newBans,
-        updatedAt: new Date().toISOString(),
-      };
-
-      setLegacyState(newState);
-      saveDraftState(newState).catch((error) => {
-        console.error("Failed to save draft state after BAN skip:", error);
-      });
-    }
+    const currentTeam = getCurrentPickingTeam(state);
+    console.log(`[DraftPage] BAN skip selected (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`);
+    setPendingBan({ type: "skip" });
   };
 
   // 仮ピックを確定してSupabaseに保存（PICKフェーズのみ）
@@ -298,29 +273,14 @@ export default function DraftPage() {
     } else {
       // Legacy: draftId がない場合は従来の処理
       const { currentMatch } = state;
-      const newPicks = { ...state.picks };
+      const idx = matchToIndex(currentMatch);
+      const newPicks = [...state.picks];
 
-      if (currentMatch === 1) {
-        const currentPicks = newPicks.match1[pickingTeam];
+      if (newPicks[idx]) {
+        const currentPicks = newPicks[idx][pickingTeam];
         if (!currentPicks.includes(pendingPick.id)) {
-          newPicks.match1 = {
-            ...newPicks.match1,
-            [pickingTeam]: [...currentPicks, pendingPick.id],
-          };
-        }
-      } else if (currentMatch === 2) {
-        const currentPicks = newPicks.match2[pickingTeam];
-        if (!currentPicks.includes(pendingPick.id)) {
-          newPicks.match2 = {
-            ...newPicks.match2,
-            [pickingTeam]: [...currentPicks, pendingPick.id],
-          };
-        }
-      } else if (currentMatch === 3) {
-        const currentPicks = newPicks.match3[pickingTeam];
-        if (!currentPicks.includes(pendingPick.id)) {
-          newPicks.match3 = {
-            ...newPicks.match3,
+          newPicks[idx] = {
+            ...newPicks[idx],
             [pickingTeam]: [...currentPicks, pendingPick.id],
           };
         }
@@ -349,98 +309,13 @@ export default function DraftPage() {
     setPendingPick(null);
   };
 
-  // BAN削除ハンドラー（仮確定中のみ）
-  const handleCancelBan = (banIndex: number) => {
-    // 🔒 読み取り専用モードでは何もしない
-    if (isReadOnly) {
-      console.warn("[DraftPage] Read-only mode: BAN cancel disabled");
-      return;
-    }
-
-    // Realtime モードでは BAN 取り消しは未対応
-    if (draftId) {
-      console.warn("[DraftPage] BAN cancel is not supported in Realtime mode");
-      return;
-    }
-
-    // Legacy モードのみ対応
-    if (!state) return;
-
-    setLegacyState((prevState) => {
-      if (!prevState) return prevState;
-
-      const { currentMatch, phase, currentBanTeam } = prevState;
-
-      // 通常試合のBAN削除
-      if (phase === "ban" && currentBanTeam) {
-        // 確定済みかチェック
-        const isConfirmed =
-          (currentMatch === 1 &&
-            prevState.banConfirmed.match1[currentBanTeam]) ||
-          (currentMatch === 2 &&
-            prevState.banConfirmed.match2[currentBanTeam]) ||
-          (currentMatch === 3 && prevState.banConfirmed.match3[currentBanTeam]);
-
-        if (isConfirmed) {
-          console.warn("[DraftPage] BAN already confirmed, cannot cancel");
-          return prevState;
-        }
-
-        const newBans = { ...prevState.bans };
-        let currentBans: BanEntry[] = [];
-
-        if (currentMatch === 1)
-          currentBans = [...newBans.match1[currentBanTeam]];
-        else if (currentMatch === 2)
-          currentBans = [...newBans.match2[currentBanTeam]];
-        else if (currentMatch === 3)
-          currentBans = [...newBans.match3[currentBanTeam]];
-
-        if (banIndex >= 0 && banIndex < currentBans.length) {
-          const removed = currentBans.splice(banIndex, 1)[0];
-          console.log(
-            `[DraftPage] BAN cancelled: ${removed} | Team ${currentBanTeam}`
-          );
-
-          if (currentMatch === 1) {
-            newBans.match1 = {
-              ...newBans.match1,
-              [currentBanTeam]: currentBans,
-            };
-          } else if (currentMatch === 2) {
-            newBans.match2 = {
-              ...newBans.match2,
-              [currentBanTeam]: currentBans,
-            };
-          } else if (currentMatch === 3) {
-            newBans.match3 = {
-              ...newBans.match3,
-              [currentBanTeam]: currentBans,
-            };
-          }
-
-          const newState = {
-            ...prevState,
-            bans: newBans,
-            updatedAt: new Date().toISOString(),
-          };
-
-          saveDraftState(newState).catch((error) => {
-            console.error(
-              "Failed to save draft state after BAN cancel:",
-              error
-            );
-          });
-
-          return newState;
-        }
-      }
-
-      return prevState;
-    });
+  // 仮BANをキャンセル（pendingBan をクリア）
+  const handleCancelBan = () => {
+    console.log("[DraftPage] Canceling pending BAN");
+    setPendingBan({ type: "none" });
   };
 
-  // 通常試合のBAN最終確定ハンドラー
+  // BAN確定ハンドラー（ABABAB turn制: pendingBan を確定）
   const handleConfirmBan = async () => {
     // 🔒 読み取り専用モードでは何もしない
     if (isReadOnly) {
@@ -448,95 +323,68 @@ export default function DraftPage() {
       return;
     }
 
-    if (!state) return;
+    if (!state || state.phase !== "ban") return;
 
-    // Realtime モード: confirmBanPhaseComplete を使用
+    // pendingBan が none の場合は何もしない
+    if (pendingBan.type === "none") {
+      console.warn("[DraftPage] No pending BAN to confirm");
+      return;
+    }
+
+    const currentTeam = getCurrentPickingTeam(state);
+    const pokemonId = pendingBan.type === "pokemon" ? pendingBan.pokemonId : null;
+
+    console.log(`[DraftPage] Confirming BAN: ${pokemonId ?? "SKIP"} (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`);
+
+    // Realtime モード: confirmBan を使用
     if (draftId) {
-      const success = await confirmBanPhaseComplete(draftId, state);
-      if (!success) {
-        console.error("[DraftPage] Failed to confirm BAN phase");
+      const success = await confirmBan(draftId, pokemonId, state);
+
+      if (success) {
+        setPendingBan({ type: "none" });
+      } else {
+        console.error("[DraftPage] Failed to confirm BAN");
       }
+      // state は Realtime で自動更新される
       return;
     }
 
     // Legacy モード: setLegacyState を使用
+    const { currentMatch, currentTurn } = state;
+    const idx = matchToIndex(currentMatch);
+    const newBans = [...state.bans];
 
-    setLegacyState((prevState) => {
-      if (!prevState || prevState.phase !== "ban") return prevState;
-
-      const { currentMatch, currentBanTeam, banConfirmed, firstPickByMatch } =
-        prevState;
-
-      if (!currentBanTeam) return prevState;
-
-      // 既に確定済みかチェック
-      const isAlreadyConfirmed =
-        (currentMatch === 1 && banConfirmed.match1[currentBanTeam]) ||
-        (currentMatch === 2 && banConfirmed.match2[currentBanTeam]) ||
-        (currentMatch === 3 && banConfirmed.match3[currentBanTeam]);
-
-      if (isAlreadyConfirmed) {
-        console.warn("[DraftPage] BAN already confirmed");
-        return prevState;
-      }
-
-      // 確定フラグを立てる
-      const newBanConfirmed = { ...banConfirmed };
-      if (currentMatch === 1) {
-        newBanConfirmed.match1 = {
-          ...newBanConfirmed.match1,
-          [currentBanTeam]: true,
-        };
-      } else if (currentMatch === 2) {
-        newBanConfirmed.match2 = {
-          ...newBanConfirmed.match2,
-          [currentBanTeam]: true,
-        };
-      } else if (currentMatch === 3) {
-        newBanConfirmed.match3 = {
-          ...newBanConfirmed.match3,
-          [currentBanTeam]: true,
-        };
-      }
-
-      // 次のチームまたはフェーズへ遷移
-      const firstBanTeam = firstPickByMatch[currentMatch as 1 | 2 | 3];
-      const secondBanTeam: Team = firstBanTeam === "A" ? "B" : "A";
-
-      let newCurrentBanTeam: Team | null = currentBanTeam;
-      let newPhase: Phase = "ban";
-      let newCurrentTurn = prevState.currentTurn;
-
-      // 先行チームが確定した場合 → 後攻チームへ
-      if (currentBanTeam === firstBanTeam) {
-        newCurrentBanTeam = secondBanTeam;
-        console.log(
-          `[DraftPage] Team ${currentBanTeam} BAN confirmed → Switching to Team ${secondBanTeam}`
-        );
-      } else {
-        // 後攻チームも確定した場合 → PICKフェーズへ
-        newCurrentBanTeam = null;
-        newPhase = "pick";
-        newCurrentTurn = 0;
-        console.log(
-          `[DraftPage] Team ${currentBanTeam} BAN confirmed → Transitioning to PICK phase`
-        );
-      }
-
-      const newState = {
-        ...prevState,
-        banConfirmed: newBanConfirmed,
-        currentBanTeam: newCurrentBanTeam,
-        phase: newPhase,
-        currentTurn: newCurrentTurn,
-        updatedAt: new Date().toISOString(),
+    // 現在の試合のBANを更新
+    if (newBans[idx]) {
+      newBans[idx] = {
+        ...newBans[idx],
+        [currentTeam]: [...newBans[idx][currentTeam], pokemonId],
       };
+    }
 
-      saveDraftState(newState).catch((error) => {
-        console.error("Failed to save draft state after BAN confirm:", error);
-      });
+    // 次のターンを計算
+    const nextTurn = currentTurn + 1;
 
-      return newState;
+    // BANフェーズ完了判定：6ターン完了でPICKフェーズへ自動遷移
+    const banPhaseComplete = nextTurn >= BAN_PHASE_TOTAL_TURNS;
+
+    const newState: DraftState = {
+      ...state,
+      bans: newBans,
+      currentTurn: banPhaseComplete ? 0 : nextTurn,
+      phase: banPhaseComplete ? "pick" : "ban",
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (banPhaseComplete) {
+      console.log("[DraftPage] BAN phase complete, transitioning to PICK phase");
+    }
+
+    setLegacyState(newState);
+    setPendingBan({ type: "none" });
+
+    saveDraftState(newState).catch((error) => {
+      console.error("Failed to save draft state after BAN confirm:", error);
     });
   };
 
@@ -565,28 +413,31 @@ export default function DraftPage() {
       // prevStateがnullの場合は何もしない（通常は起こらない）
       if (!prevState) return prevState;
 
-      // 第3試合終了後は何もしない
-      if (prevState.currentMatch === 3) {
+      const { currentMatch, series, firstPickByMatch } = prevState;
+      const maxMatches = series.maxMatches;
+
+      // 最終試合終了後は何もしない
+      if (currentMatch >= maxMatches) {
         return prevState;
       }
 
-      // 通常試合完了後は次の試合へ（1→2, 2→3）
-      const nextMatch = (prevState.currentMatch + 1) as 1 | 2 | 3;
+      // 通常試合完了後は次の試合へ
+      const nextMatch = currentMatch + 1;
+      const nextIdx = matchToIndex(nextMatch);
 
-      // 次の試合の先行BANチームを取得
-      const firstBanTeam = prevState.firstPickByMatch[nextMatch];
+      // 次の試合の先行チームを取得（ログ用）
+      const firstTeam = firstPickByMatch[nextIdx];
 
-      const newState = {
+      const newState: DraftState = {
         ...prevState,
         currentMatch: nextMatch,
         currentTurn: 0,
-        phase: "ban" as "ban" | "pick", // 次の試合はBANフェーズから開始
-        currentBanTeam: firstBanTeam, // 先行チームからBAN開始
+        phase: "ban", // 次の試合はBANフェーズから開始
         updatedAt: new Date().toISOString(),
       };
 
       console.log(
-        `[DraftPage] Transitioning to Match ${nextMatch} (BAN phase, Team ${firstBanTeam} starts)`
+        `[DraftPage] Transitioning to Match ${nextMatch} (BAN phase, Team ${firstTeam} starts)`
       );
 
       // Supabaseに保存（非同期だが待たない）
@@ -682,19 +533,17 @@ export default function DraftPage() {
   const matchComplete = isMatchComplete(state);
   const draftComplete = isDraftComplete(state);
 
-  // 現在の試合のBAN枠を取得
-  const currentMatchBanEntriesA =
-    state.currentMatch === 1
-      ? state.bans.match1.A
-      : state.currentMatch === 2
-      ? state.bans.match2.A
-      : state.bans.match3.A;
-  const currentMatchBanEntriesB =
-    state.currentMatch === 1
-      ? state.bans.match1.B
-      : state.currentMatch === 2
-      ? state.bans.match2.B
-      : state.bans.match3.B;
+  // 現在の試合のBAN枠を取得（新しいヘルパー関数を使用）
+  const currentMatchBanEntriesA = getCurrentMatchBanEntries(state, "A");
+  const currentMatchBanEntriesB = getCurrentMatchBanEntries(state, "B");
+
+  // 現在の試合のシーケンスを取得（turn番号計算用）
+  const matchIdx = state.currentMatch > 0 ? matchToIndex(state.currentMatch) : 0;
+  const banSequence = getBanSequenceByMatch(matchIdx, state.firstPickByMatch);
+  const pickSequence = getPickSequenceByMatch(matchIdx, state.firstPickByMatch);
+
+  // 最大試合数
+  const maxMatches = state.series.maxMatches;
 
   return (
     <div
@@ -772,7 +621,7 @@ export default function DraftPage() {
           overflow: "auto",
         }}
       >
-        {/* 通常試合（match 1-3）：従来のレイアウト */}
+        {/* 通常試合（match 1-maxMatches）：従来のレイアウト */}
         <div className="draft-grid-layout">
           {/* チームA */}
           <div style={{ gridArea: "teamA" }}>
@@ -784,17 +633,13 @@ export default function DraftPage() {
                 teamColor="#f97316"
                 isActive={currentPickingTeam === "A"}
                 banEntries={currentMatchBanEntriesA}
-                isBanCancellable={
-                  state.phase === "ban" &&
-                  state.currentBanTeam === "A" &&
-                  ((state.currentMatch === 1 &&
-                    !state.banConfirmed.match1.A) ||
-                    (state.currentMatch === 2 &&
-                      !state.banConfirmed.match2.A) ||
-                    (state.currentMatch === 3 &&
-                      !state.banConfirmed.match3.A))
-                }
-                onCancelBan={(banIndex) => handleCancelBan(banIndex)}
+                team="A"
+                banSequence={banSequence}
+                pickSequence={pickSequence}
+                currentTurn={state.currentTurn}
+                phase={state.phase}
+                isBanCancellable={false}
+                onCancelBan={() => {}}
               />
             </div>
           </div>
@@ -841,6 +686,17 @@ export default function DraftPage() {
                     zIndex: "1",
                   }}
                 >
+                  <div
+                    className="timer"
+                    style={{
+                      color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                      fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                      fontWeight: "bold",
+                      marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                    }}
+                  >
+                    残り {timeLeft} 秒
+                  </div>
                   <div
                     style={{
                       color: "#d97706",
@@ -923,12 +779,9 @@ export default function DraftPage() {
                 </div>
               )}
 
-            {/* BANスキップボタン（BANフェーズ中で何も選択していない時、かつBAN枠に余裕がある） */}
-            {state.phase === "ban" &&
-              !pendingPick &&
-              currentPickingTeam &&
-              getCurrentMatchBansByTeam(state, currentPickingTeam).length <
-                3 &&
+            {/* PICKフェーズ：pendingPick がない場合の簡易タイマー */}
+            {pendingPick === null &&
+              state.phase === "pick" &&
               !isReadOnly &&
               !matchComplete && (
                 <div
@@ -948,149 +801,237 @@ export default function DraftPage() {
                 >
                   <div
                     style={{
+                      color: "#374151",
+                      marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                      fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {state.teams[currentPickingTeam].name} のPICKターン ({state.currentTurn + 1}/10)
+                  </div>
+                  <div
+                    className="timer"
+                    style={{
+                      color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                      fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                      fontWeight: "bold",
+                      marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                    }}
+                  >
+                    残り {timeLeft} 秒
+                  </div>
+                  <div
+                    style={{
                       color: "#6b7280",
-                      marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
                       fontSize: "clamp(0.65rem, 1.4vw, 0.75rem)",
                     }}
                   >
-                    ポケモンを選択するか、このBAN枠をスキップできます
+                    ポケモンを選択してください
                   </div>
-                  <button
-                    onClick={handleSkipBan}
-                    style={{
-                      background: "#6b7280",
-                      color: "white",
-                      border: "none",
-                      padding:
-                        "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
-                      borderRadius: "6px",
-                      fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                      transition: "all 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 6px rgba(0, 0, 0, 0.1)";
-                      e.currentTarget.style.background = "#4b5563";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 1px 3px rgba(0, 0, 0, 0.1)";
-                      e.currentTarget.style.background = "#6b7280";
-                    }}
-                  >
-                    ⏭️ このBAN枠をスキップ
-                  </button>
                 </div>
               )}
 
-            {/* BAN確定ボタン（BANフェーズ中で、BAN枠が3つすべて埋まっているとき） */}
-            {(() => {
-              // currentPickingTeam が null の場合は早期リターン
-              if (!currentPickingTeam) return null;
-
-              // 現在の試合・チームのBAN配列を取得
-              const currentMatchBans =
-                state.currentMatch === 1
-                  ? state.bans.match1[currentPickingTeam]
-                  : state.currentMatch === 2
-                  ? state.bans.match2[currentPickingTeam]
-                  : state.currentMatch === 3
-                  ? state.bans.match3[currentPickingTeam]
-                  : [];
-
-              // BAN枠がすべて埋まっているか（null含む、3枠のみ）
-              const isBanSlotsFilled = currentMatchBans.length === 3;
-
-              return (
-                state.phase === "ban" &&
-                !pendingPick &&
-                currentPickingTeam &&
-                state.currentBanTeam === currentPickingTeam &&
-                isBanSlotsFilled &&
-                ((state.currentMatch === 1 &&
-                  !state.banConfirmed.match1[currentPickingTeam]) ||
-                  (state.currentMatch === 2 &&
-                    !state.banConfirmed.match2[currentPickingTeam]) ||
-                  (state.currentMatch === 3 &&
-                    !state.banConfirmed.match3[currentPickingTeam])) &&
-                !isReadOnly &&
-                !matchComplete && (
-                  <div
-                    style={{
-                      background: "#fef3c7",
-                      padding: "clamp(1rem, 2.5vw, 1.25rem)",
-                      borderRadius: "12px",
-                      border: "2px solid #f59e0b",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                      textAlign: "center",
-                      position: "fixed",
-                      bottom: "10vh",
-                      left: "50%",
-                      transform: "translate(-50% , -50%)",
-                      zIndex: "2",
-                    }}
-                  >
+            {/* BANフェーズ：pendingBan の状態に応じた UI */}
+            {state.phase === "ban" &&
+              !isBanPhaseComplete(state) &&
+              !isReadOnly &&
+              !matchComplete && (
+                <>
+                  {/* pendingBan が none の場合：選択待ち + スキップボタン */}
+                  {pendingBan.type === "none" && (
                     <div
                       style={{
-                        color: "#92400e",
-                        marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
-                        fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                        fontWeight: "bold",
+                        background: "#f9fafb",
+                        padding: "clamp(0.6rem, 1.5vw, 1rem)",
+                        borderRadius: "8px",
+                        border: "1.5px solid #d1d5db",
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                        textAlign: "center",
+                        position: "fixed",
+                        bottom: "10vh",
+                        left: "50%",
+                        transform: "translate(-50% , -50%)",
+                        zIndex: "1",
                       }}
                     >
-                      ⚠️ {state.teams[currentPickingTeam].name} の
-                      BANを確定してください
+                      <div
+                        style={{
+                          color: "#374151",
+                          marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                          fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {state.teams[currentPickingTeam].name} のBANターン ({state.currentTurn + 1}/6)
+                      </div>
+                      <div
+                        className="timer"
+                        style={{
+                          color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                          fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                          fontWeight: "bold",
+                          marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                        }}
+                      >
+                        残り {timeLeft} 秒
+                      </div>
+                      <div
+                        style={{
+                          color: "#6b7280",
+                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          fontSize: "clamp(0.65rem, 1.4vw, 0.75rem)",
+                        }}
+                      >
+                        ポケモンを選択するか、このBAN枠をスキップできます
+                      </div>
+                      <button
+                        onClick={handleSkipBan}
+                        style={{
+                          background: "#6b7280",
+                          color: "white",
+                          border: "none",
+                          padding:
+                            "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                          borderRadius: "6px",
+                          fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                          transition: "all 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow =
+                            "0 4px 6px rgba(0, 0, 0, 0.1)";
+                          e.currentTarget.style.background = "#4b5563";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow =
+                            "0 1px 3px rgba(0, 0, 0, 0.1)";
+                          e.currentTarget.style.background = "#6b7280";
+                        }}
+                      >
+                        このBAN枠をスキップ
+                      </button>
                     </div>
+                  )}
+
+                  {/* pendingBan が pokemon または skip の場合：確定/キャンセルボタン */}
+                  {pendingBan.type !== "none" && (
                     <div
                       style={{
-                        color: "#6b7280",
-                        marginBottom: "clamp(0.75rem, 2vw, 1rem)",
-                        fontSize: "clamp(0.65rem, 1.4vw, 0.75rem)",
+                        background: "#fef3c7",
+                        padding: "clamp(0.6rem, 1.5vw, 1rem)",
+                        borderRadius: "8px",
+                        border: "1.5px solid #f59e0b",
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                        textAlign: "center",
+                        position: "fixed",
+                        bottom: "10vh",
+                        left: "50%",
+                        transform: "translate(-50% , -50%)",
+                        zIndex: "2",
                       }}
                     >
-                      現在のBAN数: {currentMatchBans.length} / 3
-                      <br />
-                      確定後は変更できません
+                      <div
+                        className="timer"
+                        style={{
+                          color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                          fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                          fontWeight: "bold",
+                          marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                        }}
+                      >
+                        残り {timeLeft} 秒
+                      </div>
+                      <div
+                        style={{
+                          color: "#d97706",
+                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {pendingBan.type === "pokemon" ? (
+                          <>✓ 仮BAN: <strong>{getPokemonById(pendingBan.pokemonId)?.name ?? pendingBan.pokemonId}</strong></>
+                        ) : (
+                          <>✓ BANスキップを選択</>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          justifyContent: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button
+                          onClick={handleConfirmBan}
+                          style={{
+                            background: "#10b981",
+                            color: "white",
+                            border: "none",
+                            padding:
+                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 6px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#059669";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow =
+                              "0 1px 3px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#10b981";
+                          }}
+                        >
+                          ✓ 確定
+                        </button>
+                        <button
+                          onClick={handleCancelBan}
+                          style={{
+                            background: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            padding:
+                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 6px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#dc2626";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow =
+                              "0 1px 3px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#ef4444";
+                          }}
+                        >
+                          ✕ キャンセル
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={handleConfirmBan}
-                      style={{
-                        background: "#f59e0b",
-                        color: "white",
-                        border: "none",
-                        padding:
-                          "clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)",
-                        borderRadius: "10px",
-                        fontSize: "clamp(0.8rem, 1.7vw, 0.9rem)",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        transition: "all 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 6px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#d97706";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 1px 3px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#f59e0b";
-                      }}
-                    >
-                      BANを確定する
-                    </button>
-                  </div>
-                )
-              );
-            })()}
+                  )}
+                </>
+              )}
 
           {/* 試合終了時のボタン・メッセージ表示 */}
           {matchComplete && !isReadOnly && (
@@ -1110,7 +1051,7 @@ export default function DraftPage() {
               }}
             >
               {draftComplete ? (
-                // 第3試合終了：ドラフト完了
+                // 最終試合終了：ドラフト完了
                 <div>
                   <h2
                     style={{
@@ -1129,7 +1070,7 @@ export default function DraftPage() {
                       fontSize: "clamp(0.9rem, 2vw, 1rem)",
                     }}
                   >
-                    全3試合のドラフトが完了しました
+                    全{maxMatches}試合のドラフトが完了しました
                   </p>
                   {draftId && (
                     <Link
@@ -1166,7 +1107,7 @@ export default function DraftPage() {
                   )}
                 </div>
               ) : (
-                // 第1・第2試合終了：次の試合へ進むボタン
+                // 試合終了：次の試合へ進むボタン
                 <div>
                   <h3
                     style={{
@@ -1176,7 +1117,7 @@ export default function DraftPage() {
                       fontWeight: "bold",
                     }}
                   >
-                    試合 {state.currentMatch} 終了
+                    試合 {state.currentMatch} / {maxMatches} 終了
                   </h3>
                   <button
                     onClick={handleGoToNextMatch}
@@ -1224,17 +1165,13 @@ export default function DraftPage() {
               teamColor="#8b5cf6"
               isActive={currentPickingTeam === "B"}
               banEntries={currentMatchBanEntriesB}
-              isBanCancellable={
-                state.phase === "ban" &&
-                state.currentBanTeam === "B" &&
-                ((state.currentMatch === 1 &&
-                  !state.banConfirmed.match1.B) ||
-                  (state.currentMatch === 2 &&
-                    !state.banConfirmed.match2.B) ||
-                  (state.currentMatch === 3 &&
-                    !state.banConfirmed.match3.B))
-              }
-              onCancelBan={(banIndex) => handleCancelBan(banIndex)}
+              team="B"
+              banSequence={banSequence}
+              pickSequence={pickSequence}
+              currentTurn={state.currentTurn}
+              phase={state.phase}
+              isBanCancellable={false}
+              onCancelBan={() => {}}
             />
           </div>
         </div>

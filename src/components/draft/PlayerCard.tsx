@@ -6,6 +6,7 @@ interface PlayerCardProps {
   pokemon: Pokemon | null
   teamColor: string
   isCurrentPicker: boolean
+  slotNumber: number // 1-based の枠番号
 }
 
 export default function PlayerCard({
@@ -13,6 +14,7 @@ export default function PlayerCard({
   pokemon,
   teamColor,
   isCurrentPicker,
+  slotNumber,
 }: PlayerCardProps) {
   return (
     <div
@@ -123,27 +125,30 @@ export default function PlayerCard({
             </div> */}
           </div>
         ) : (
-          // 未ピック：空スロット
+          // 未ピック：番号表示
           <div
             style={{
               width: '100%',
               height: 'clamp(30px, 4vh, 42px)',
-              border: '1px dashed #d1d5db',
+              border: `1px dashed ${teamColor}60`,
               borderRadius: '5px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#9ca3af',
-              fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)',
               background: '#ffffff',
               transition: 'all 0.3s ease',
             }}
           >
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(0.8rem, 1.6vw, 1rem)', opacity: 0.3 }}>
-                ✦
-              </div>
-              <div style={{ marginTop: '0.1rem' }}>未選択</div>
+            <div
+              style={{
+                textAlign: 'center',
+                fontWeight: 'bold',
+                color: teamColor,
+                lineHeight: 1.2,
+              }}
+            >
+              <div style={{ fontSize: 'clamp(0.45rem, 0.9vw, 0.55rem)', opacity: 0.7 }}>PICK</div>
+              <div style={{ fontSize: 'clamp(0.7rem, 1.4vw, 0.9rem)' }}>{slotNumber}</div>
             </div>
           </div>
         )}

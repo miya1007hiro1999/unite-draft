@@ -1,7 +1,8 @@
-import type { BanEntry } from "../../types/draft";
+import type { BanEntry, Team } from "../../types/draft";
 import PlayerCard from "./PlayerCard";
 import BanRow from "./BanRow";
 import { getPokemonById } from "../../data/pokemon";
+import { getTurnNumberByTeamIndex } from "../../utils/draftLogic";
 
 interface PlayerCardListProps {
   teamName: string;
@@ -10,6 +11,11 @@ interface PlayerCardListProps {
   teamColor: string;
   isActive: boolean;
   banEntries: BanEntry[];
+  team: Team; // このチーム ('A' | 'B')
+  banSequence: Team[]; // BAN順シーケンス（例: ['A', 'B', 'A', 'B', 'A', 'B']）
+  pickSequence: Team[]; // PICK順シーケンス（例: ['A', 'B', 'B', 'A', 'A', 'B', 'B', 'A', 'A', 'B']）
+  currentTurn: number; // 現在のターン（0-based）
+  phase: 'ban' | 'pick'; // 現在のフェーズ
   isBanCancellable?: boolean; // BAN削除可能かどうか
   onCancelBan?: (banIndex: number) => void; // BAN削除ハンドラー
 }
@@ -21,6 +27,11 @@ export default function PlayerCardList({
   teamColor,
   isActive,
   banEntries,
+  team,
+  banSequence,
+  pickSequence,
+  currentTurn,
+  phase,
   isBanCancellable = false,
   onCancelBan,
 }: PlayerCardListProps) {
@@ -56,6 +67,10 @@ export default function PlayerCardList({
         <BanRow
           teamColor={teamColor}
           banEntries={banEntries}
+          team={team}
+          banSequence={banSequence}
+          currentTurn={currentTurn}
+          phase={phase}
           isCancellable={isBanCancellable}
           onCancelBan={onCancelBan}
         />
@@ -91,11 +106,15 @@ export default function PlayerCardList({
       >
         {players.map((playerName, index) => {
           // 現在のピック数から、次にピックするプレイヤーを判定
-          const isCurrentPicker = isActive && pickedPokemonIds.length === index;
+          // PICKフェーズのみで表示（BANフェーズ中はBanSlotに表示）
+          const isCurrentPicker = phase === 'pick' && isActive && pickedPokemonIds.length === index;
 
           // このプレイヤーのポケモンを取得
           const pokemonId = pickedPokemonIds[index];
           const pokemon = pokemonId ? getPokemonById(pokemonId) : null;
+
+          // シーケンス内での turn 番号を計算
+          const turnNumber = getTurnNumberByTeamIndex(team, index, pickSequence);
 
           return (
             <PlayerCard
@@ -104,6 +123,7 @@ export default function PlayerCardList({
               pokemon={pokemon}
               teamColor={teamColor}
               isCurrentPicker={isCurrentPicker}
+              slotNumber={turnNumber}
             />
           );
         })}

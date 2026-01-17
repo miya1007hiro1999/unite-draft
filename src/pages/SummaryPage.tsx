@@ -208,7 +208,7 @@ export default function SummaryPage() {
   )
 
   const renderMatchPicks = (
-    matchNumber: 1 | 2 | 3,
+    matchNumber: number,
     teamAPicks: string[],
     teamBPicks: string[]
   ) => (
@@ -373,9 +373,12 @@ export default function SummaryPage() {
             gap: 'clamp(1.5rem, 3vw, 2rem)',
           }}
         >
-          {renderMatchPicks(1, state.picks.match1.A, state.picks.match1.B)}
-          {renderMatchPicks(2, state.picks.match2.A, state.picks.match2.B)}
-          {renderMatchPicks(3, state.picks.match3.A, state.picks.match3.B)}
+          {/* 動的に全試合のピックを表示 */}
+          {state.picks.map((matchPicks, index) => (
+            <div key={index}>
+              {renderMatchPicks(index + 1, matchPicks.A, matchPicks.B)}
+            </div>
+          ))}
 
           {/* 新規大会作成リンク */}
           <div style={{ textAlign: 'center', marginTop: 'clamp(1rem, 2vw, 2rem)' }}>

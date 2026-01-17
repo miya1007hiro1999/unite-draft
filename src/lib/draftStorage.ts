@@ -108,8 +108,8 @@ export async function saveDraftState(state: DraftState): Promise<string | boolea
       tournamentName: state.tournamentName,
       currentMatch: state.currentMatch,
       currentTurn: state.currentTurn,
-      teamAPicksCount: state.picks.match1.A.length,
-      teamBPicksCount: state.picks.match1.B.length,
+      teamAPicksCount: state.picks[0]?.A.length ?? 0,
+      teamBPicksCount: state.picks[0]?.B.length ?? 0,
     })
 
     // Supabase未設定の場合は保存できない
