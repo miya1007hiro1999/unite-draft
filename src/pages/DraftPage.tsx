@@ -1201,8 +1201,8 @@ export default function DraftPage() {
         grid-template-rows: auto 1fr;
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
-          "center center"
-          "teamA teamB";
+        "teamA teamB"
+        "center center";
         gap: clamp(0.75rem, 1.5vw, 1rem);
         max-width: 1400px;
         margin: 0 auto;
