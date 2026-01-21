@@ -32,7 +32,7 @@ export default function PlayerCard({
           : '0 1px 2px rgba(0, 0, 0, 0.05)',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
-        minHeight: 'clamp(50px, 10vh,  120px)',
+        minHeight: 'clamp(120px, 10vh,  120px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',

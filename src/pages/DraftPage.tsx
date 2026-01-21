@@ -555,13 +555,13 @@ export default function DraftPage() {
         overflow: "hidden",
       }}
     >
-      {/* 運営・観戦URL表示（画面右上に固定） */}
+      {/* 運営・観戦URL表示（画面右下に固定） */}
       {!isReadOnly && draftId && (
         <div
           style={{
             position: "fixed",
-            top: "clamp(0.5rem, 1vw, 1rem)",
-            left: "clamp(0.5rem, 1vw, 1rem)",
+            bottom: "clamp(0.5rem, 1vw, 1rem)",
+            right: "clamp(0.5rem, 1vw, 1rem)",
             zIndex: 1000,
             background: "rgba(249, 250, 251, 0.95)",
             padding: "clamp(0.4rem, 1vw, 0.6rem)",
@@ -673,14 +673,14 @@ export default function DraftPage() {
               !matchComplete && (
                 <div
                   style={{
-                    background: "#f9fafb",
+                    background: "#f9fafbe2",
                     padding: "clamp(0.6rem, 1.5vw, 1rem)",
                     borderRadius: "8px",
                     border: "1.5px solid #f59e0b",
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
                     textAlign: "center",
                     position: "fixed",
-                    bottom: "10vh",
+                    top: "9vh",
                     left: "50%",
                     transform: "translate(-50% , -50%)",
                     zIndex: "1",
@@ -786,14 +786,14 @@ export default function DraftPage() {
               !matchComplete && (
                 <div
                   style={{
-                    background: "#f9fafb",
+                    background: "#f9fafbe2",
                     padding: "clamp(0.6rem, 1.5vw, 1rem)",
                     borderRadius: "8px",
                     border: "1.5px solid #d1d5db",
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
                     textAlign: "center",
                     position: "fixed",
-                    bottom: "10vh",
+                    top: "9vh",
                     left: "50%",
                     transform: "translate(-50% , -50%)",
                     zIndex: "1",
@@ -841,14 +841,14 @@ export default function DraftPage() {
                   {pendingBan.type === "none" && (
                     <div
                       style={{
-                        background: "#f9fafb",
+                        background: "#f9fafbe2",
                         padding: "clamp(0.6rem, 1.5vw, 1rem)",
                         borderRadius: "8px",
                         border: "1.5px solid #d1d5db",
                         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
                         textAlign: "center",
                         position: "fixed",
-                        bottom: "10vh",
+                        top: "9vh",
                         left: "50%",
                         transform: "translate(-50% , -50%)",
                         zIndex: "1",
@@ -921,14 +921,14 @@ export default function DraftPage() {
                   {pendingBan.type !== "none" && (
                     <div
                       style={{
-                        background: "#fef3c7",
+                        background: "#fef3c7e2",
                         padding: "clamp(0.6rem, 1.5vw, 1rem)",
                         borderRadius: "8px",
                         border: "1.5px solid #f59e0b",
                         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
                         textAlign: "center",
                         position: "fixed",
-                        bottom: "10vh",
+                        top: "9vh",
                         left: "50%",
                         transform: "translate(-50% , -50%)",
                         zIndex: "2",
@@ -1037,14 +1037,14 @@ export default function DraftPage() {
           {matchComplete && !isReadOnly && (
             <div
               style={{
-                background: "#f0fdf4",
+                background: "#f0fdf4e2",
                 padding: "clamp(1.25rem, 3vw, 1.5rem)",
                 borderRadius: "12px",
                 border: "2px solid #10b981",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
                 textAlign: "center",
                 position: "fixed",
-                bottom: "10vh",
+                top: "9vh",
                 left: "50%",
                 transform: "translate(-50% , -50%)",
                 zIndex: "1",
