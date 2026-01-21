@@ -21,10 +21,7 @@ import {
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import PlayerCardList from "../components/draft/PlayerCardList";
 import { getPokemonById } from "../data/pokemon";
-import {
-  loadDraftState,
-  saveDraftState,
-} from "../lib/draftStorage";
+import { loadDraftState, saveDraftState } from "../lib/draftStorage";
 import type { Pokemon } from "../types/pokemon";
 import { useDraftRealtime } from "../hooks/useDraftRealtime";
 import { confirmPick, confirmBan, goToNextMatch } from "../lib/draftActions";
@@ -63,7 +60,9 @@ export default function DraftPage() {
 
   // 未確定 state はローカルのみ
   const [pendingPick, setPendingPick] = useState<Pokemon | null>(null);
-  const [pendingBan, setPendingBan] = useState<PendingBanState>({ type: "none" });
+  const [pendingBan, setPendingBan] = useState<PendingBanState>({
+    type: "none",
+  });
 
   // タイムアウト処理（admin のみ実行）
   const handleTimeout = useCallback(async () => {
@@ -82,7 +81,9 @@ export default function DraftPage() {
       const randomPokemonId = pickRandomPokemon(state);
       const pickingTeam = getCurrentPickingTeam(state);
 
-      console.log(`[DraftPage] Auto-pick: ${randomPokemonId} for Team ${pickingTeam}`);
+      console.log(
+        `[DraftPage] Auto-pick: ${randomPokemonId} for Team ${pickingTeam}`
+      );
 
       const success = await confirmPick(
         draftId,
@@ -237,7 +238,9 @@ export default function DraftPage() {
     }
 
     const currentTeam = getCurrentPickingTeam(state);
-    console.log(`[DraftPage] BAN skip selected (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`);
+    console.log(
+      `[DraftPage] BAN skip selected (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`
+    );
     setPendingBan({ type: "skip" });
   };
 
@@ -251,7 +254,9 @@ export default function DraftPage() {
 
     const pickingTeam = getCurrentPickingTeam(state);
 
-    console.log(`[DraftPage] Confirming PICK: ${pendingPick.name} (Team ${pickingTeam})`);
+    console.log(
+      `[DraftPage] Confirming PICK: ${pendingPick.name} (Team ${pickingTeam})`
+    );
 
     // Realtime 対応：draftId がある場合は confirmPick を使用
     if (draftId) {
@@ -332,9 +337,14 @@ export default function DraftPage() {
     }
 
     const currentTeam = getCurrentPickingTeam(state);
-    const pokemonId = pendingBan.type === "pokemon" ? pendingBan.pokemonId : null;
+    const pokemonId =
+      pendingBan.type === "pokemon" ? pendingBan.pokemonId : null;
 
-    console.log(`[DraftPage] Confirming BAN: ${pokemonId ?? "SKIP"} (Match ${state.currentMatch}, Turn ${state.currentTurn}, Team ${currentTeam})`);
+    console.log(
+      `[DraftPage] Confirming BAN: ${pokemonId ?? "SKIP"} (Match ${
+        state.currentMatch
+      }, Turn ${state.currentTurn}, Team ${currentTeam})`
+    );
 
     // Realtime モード: confirmBan を使用
     if (draftId) {
@@ -377,7 +387,9 @@ export default function DraftPage() {
     };
 
     if (banPhaseComplete) {
-      console.log("[DraftPage] BAN phase complete, transitioning to PICK phase");
+      console.log(
+        "[DraftPage] BAN phase complete, transitioning to PICK phase"
+      );
     }
 
     setLegacyState(newState);
@@ -538,7 +550,8 @@ export default function DraftPage() {
   const currentMatchBanEntriesB = getCurrentMatchBanEntries(state, "B");
 
   // 現在の試合のシーケンスを取得（turn番号計算用）
-  const matchIdx = state.currentMatch > 0 ? matchToIndex(state.currentMatch) : 0;
+  const matchIdx =
+    state.currentMatch > 0 ? matchToIndex(state.currentMatch) : 0;
   const banSequence = getBanSequenceByMatch(matchIdx, state.firstPickByMatch);
   const pickSequence = getPickSequenceByMatch(matchIdx, state.firstPickByMatch);
 
@@ -671,21 +684,7 @@ export default function DraftPage() {
               state.phase === "pick" &&
               !isReadOnly &&
               !matchComplete && (
-                <div
-                  style={{
-                    background: "#f9fafbe2",
-                    padding: "clamp(0.6rem, 1.5vw, 1rem)",
-                    borderRadius: "8px",
-                    border: "1.5px solid #f59e0b",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                    textAlign: "center",
-                    position: "fixed",
-                    top: "9vh",
-                    left: "50%",
-                    transform: "translate(-50% , -50%)",
-                    zIndex: "1",
-                  }}
-                >
+                <div className="floating-box">
                   <div
                     className="timer"
                     style={{
@@ -784,21 +783,7 @@ export default function DraftPage() {
               state.phase === "pick" &&
               !isReadOnly &&
               !matchComplete && (
-                <div
-                  style={{
-                    background: "#f9fafbe2",
-                    padding: "clamp(0.6rem, 1.5vw, 1rem)",
-                    borderRadius: "8px",
-                    border: "1.5px solid #d1d5db",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                    textAlign: "center",
-                    position: "fixed",
-                    top: "9vh",
-                    left: "50%",
-                    transform: "translate(-50% , -50%)",
-                    zIndex: "1",
-                  }}
-                >
+                <div className="floating-box">
                   <div
                     style={{
                       color: "#374151",
@@ -807,7 +792,8 @@ export default function DraftPage() {
                       fontWeight: "bold",
                     }}
                   >
-                    {state.teams[currentPickingTeam].name} のPICKターン ({state.currentTurn + 1}/10)
+                    {state.teams[currentPickingTeam].name} のPICKターン (
+                    {state.currentTurn + 1}/10)
                   </div>
                   <div
                     className="timer"
@@ -839,21 +825,7 @@ export default function DraftPage() {
                 <>
                   {/* pendingBan が none の場合：選択待ち + スキップボタン */}
                   {pendingBan.type === "none" && (
-                    <div
-                      style={{
-                        background: "#f9fafbe2",
-                        padding: "clamp(0.6rem, 1.5vw, 1rem)",
-                        borderRadius: "8px",
-                        border: "1.5px solid #d1d5db",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                        textAlign: "center",
-                        position: "fixed",
-                        top: "9vh",
-                        left: "50%",
-                        transform: "translate(-50% , -50%)",
-                        zIndex: "1",
-                      }}
-                    >
+                    <div className="floating-box">
                       <div
                         style={{
                           color: "#374151",
@@ -862,7 +834,8 @@ export default function DraftPage() {
                           fontWeight: "bold",
                         }}
                       >
-                        {state.teams[currentPickingTeam].name} のBANターン ({state.currentTurn + 1}/6)
+                        {state.teams[currentPickingTeam].name} のBANターン (
+                        {state.currentTurn + 1}/6)
                       </div>
                       <div
                         className="timer"
@@ -919,21 +892,7 @@ export default function DraftPage() {
 
                   {/* pendingBan が pokemon または skip の場合：確定/キャンセルボタン */}
                   {pendingBan.type !== "none" && (
-                    <div
-                      style={{
-                        background: "#fef3c7e2",
-                        padding: "clamp(0.6rem, 1.5vw, 1rem)",
-                        borderRadius: "8px",
-                        border: "1.5px solid #f59e0b",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                        textAlign: "center",
-                        position: "fixed",
-                        top: "9vh",
-                        left: "50%",
-                        transform: "translate(-50% , -50%)",
-                        zIndex: "2",
-                      }}
-                    >
+                    <div className="floating-box">
                       <div
                         className="timer"
                         style={{
@@ -954,7 +913,13 @@ export default function DraftPage() {
                         }}
                       >
                         {pendingBan.type === "pokemon" ? (
-                          <>✓ 仮BAN: <strong>{getPokemonById(pendingBan.pokemonId)?.name ?? pendingBan.pokemonId}</strong></>
+                          <>
+                            ✓ 仮BAN:{" "}
+                            <strong>
+                              {getPokemonById(pendingBan.pokemonId)?.name ??
+                                pendingBan.pokemonId}
+                            </strong>
+                          </>
                         ) : (
                           <>✓ BANスキップを選択</>
                         )}
@@ -983,7 +948,8 @@ export default function DraftPage() {
                             transition: "all 0.3s ease",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.transform =
+                              "translateY(-1px)";
                             e.currentTarget.style.boxShadow =
                               "0 4px 6px rgba(0, 0, 0, 0.1)";
                             e.currentTarget.style.background = "#059669";
@@ -1013,7 +979,8 @@ export default function DraftPage() {
                             transition: "all 0.3s ease",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.transform =
+                              "translateY(-1px)";
                             e.currentTarget.style.boxShadow =
                               "0 4px 6px rgba(0, 0, 0, 0.1)";
                             e.currentTarget.style.background = "#dc2626";
@@ -1033,64 +1000,94 @@ export default function DraftPage() {
                 </>
               )}
 
-          {/* 試合終了時のボタン・メッセージ表示 */}
-          {matchComplete && !isReadOnly && (
-            <div
-              style={{
-                background: "#f0fdf4e2",
-                padding: "clamp(1.25rem, 3vw, 1.5rem)",
-                borderRadius: "12px",
-                border: "2px solid #10b981",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                textAlign: "center",
-                position: "fixed",
-                top: "9vh",
-                left: "50%",
-                transform: "translate(-50% , -50%)",
-                zIndex: "1",
-              }}
-            >
-              {draftComplete ? (
-                // 最終試合終了：ドラフト完了
-                <div>
-                  <h2
-                    style={{
-                      color: "#059669",
-                      margin: "0 0 clamp(0.75rem, 2vw, 1rem) 0",
-                      fontSize: "clamp(1.2rem, 3vw, 1.5rem)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ドラフト完了
-                  </h2>
-                  <p
-                    style={{
-                      color: "#6b7280",
-                      margin: "0 0 clamp(1rem, 2vw, 1.5rem) 0",
-                      fontSize: "clamp(0.9rem, 2vw, 1rem)",
-                    }}
-                  >
-                    全{maxMatches}試合のドラフトが完了しました
-                  </p>
-                  {draftId && (
-                    <Link
-                      to={`/draft/${draftId}/summary`}
+            {/* 試合終了時のボタン・メッセージ表示 */}
+            {matchComplete && !isReadOnly && (
+              <div className="floating-box">
+                {draftComplete ? (
+                  // 最終試合終了：ドラフト完了
+                  <div>
+                    <h2
                       style={{
-                        display: "inline-block",
+                        color: "#059669",
+                        margin: "0 0 clamp(0.75rem, 2vw, 1rem) 0",
+                        fontSize: "clamp(1.2rem, 3vw, 1.5rem)",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      ドラフト完了
+                    </h2>
+                    <p
+                      style={{
+                        color: "#6b7280",
+                        margin: "0 0 clamp(1rem, 2vw, 1.5rem) 0",
+                        fontSize: "clamp(0.9rem, 2vw, 1rem)",
+                      }}
+                    >
+                      全{maxMatches}試合のドラフトが完了しました
+                    </p>
+                    {draftId && (
+                      <Link
+                        to={`/draft/${draftId}/summary`}
+                        style={{
+                          display: "inline-block",
+                          background: "#10b981",
+                          color: "white",
+                          textDecoration: "none",
+                          padding:
+                            "clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)",
+                          borderRadius: "10px",
+                          fontSize: "clamp(0.9rem, 2vw, 1rem)",
+                          fontWeight: "bold",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                          transition: "all 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow =
+                            "0 4px 6px rgba(0, 0, 0, 0.1)";
+                          e.currentTarget.style.background = "#059669";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow =
+                            "0 1px 3px rgba(0, 0, 0, 0.1)";
+                          e.currentTarget.style.background = "#10b981";
+                        }}
+                      >
+                        サマリーを見る
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  // 試合終了：次の試合へ進むボタン
+                  <div>
+                    <h3
+                      style={{
+                        color: "#059669",
+                        margin: "0 0 clamp(0.75rem, 2vw, 1rem) 0",
+                        fontSize: "clamp(1.1rem, 2.5vw, 1.2rem)",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      試合 {state.currentMatch} / {maxMatches} 終了
+                    </h3>
+                    <button
+                      onClick={handleGoToNextMatch}
+                      style={{
                         background: "#10b981",
                         color: "white",
-                        textDecoration: "none",
+                        border: "none",
                         padding:
                           "clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)",
                         borderRadius: "10px",
                         fontSize: "clamp(0.9rem, 2vw, 1rem)",
                         fontWeight: "bold",
+                        cursor: "pointer",
                         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         transition: "all 0.3s ease",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform =
-                          "translateY(-1px)";
+                        e.currentTarget.style.transform = "translateY(-1px)";
                         e.currentTarget.style.boxShadow =
                           "0 4px 6px rgba(0, 0, 0, 0.1)";
                         e.currentTarget.style.background = "#059669";
@@ -1102,100 +1099,55 @@ export default function DraftPage() {
                         e.currentTarget.style.background = "#10b981";
                       }}
                     >
-                      サマリーを見る
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                // 試合終了：次の試合へ進むボタン
-                <div>
-                  <h3
-                    style={{
-                      color: "#059669",
-                      margin: "0 0 clamp(0.75rem, 2vw, 1rem) 0",
-                      fontSize: "clamp(1.1rem, 2.5vw, 1.2rem)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    試合 {state.currentMatch} / {maxMatches} 終了
-                  </h3>
-                  <button
-                    onClick={handleGoToNextMatch}
-                    style={{
-                      background: "#10b981",
-                      color: "white",
-                      border: "none",
-                      padding:
-                        "clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 3vw, 2rem)",
-                      borderRadius: "10px",
-                      fontSize: "clamp(0.9rem, 2vw, 1rem)",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                      transition: "all 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 6px rgba(0, 0, 0, 0.1)";
-                      e.currentTarget.style.background = "#059669";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 1px 3px rgba(0, 0, 0, 0.1)";
-                      e.currentTarget.style.background = "#10b981";
-                    }}
-                  >
-                    次の試合へ進む（試合 {state.currentMatch + 1}）
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                      次の試合へ進む（試合 {state.currentMatch + 1}）
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-        {/* チームB */}
-        <div className="teamB" style={{ gridArea: "teamB" }}>
-          <div style={{ width: "100%" }}>
-            <PlayerCardList
-              teamName={state.teams.B.name}
-              players={state.teams.B.players}
-              pickedPokemonIds={getCurrentMatchPicks(state, "B")}
-              teamColor="#8b5cf6"
-              isActive={currentPickingTeam === "B"}
-              banEntries={currentMatchBanEntriesB}
-              team="B"
-              banSequence={banSequence}
-              pickSequence={pickSequence}
-              currentTurn={state.currentTurn}
-              phase={state.phase}
-              isBanCancellable={false}
-              onCancelBan={() => {}}
-            />
+          {/* チームB */}
+          <div className="teamB" style={{ gridArea: "teamB" }}>
+            <div style={{ width: "100%" }}>
+              <PlayerCardList
+                teamName={state.teams.B.name}
+                players={state.teams.B.players}
+                pickedPokemonIds={getCurrentMatchPicks(state, "B")}
+                teamColor="#8b5cf6"
+                isActive={currentPickingTeam === "B"}
+                banEntries={currentMatchBanEntriesB}
+                team="B"
+                banSequence={banSequence}
+                pickSequence={pickSequence}
+                currentTurn={state.currentTurn}
+                phase={state.phase}
+                isBanCancellable={false}
+                onCancelBan={() => {}}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    {/* フッター */}
-    <footer
-      style={{
-        flexShrink: 0,
-        background: "#ffffff",
-        color: "#9ca3af",
-        padding: "clamp(0.3rem, 1vw, 0.5rem) clamp(0.5rem, 2vw, 1rem)",
-        borderTop: "1px solid #e5e7eb",
-        textAlign: "center",
-        fontSize: "clamp(0.6rem, 1.2vw, 0.7rem)",
-        boxShadow: "0 -1px 3px rgba(0, 0, 0, 0.05)",
-      }}
-    >
-      最終更新: {new Date(state.updatedAt).toLocaleString("ja-JP")}
-    </footer>
+      {/* フッター */}
+      <footer
+        style={{
+          flexShrink: 0,
+          background: "#ffffff",
+          color: "#9ca3af",
+          padding: "clamp(0.3rem, 1vw, 0.5rem) clamp(0.5rem, 2vw, 1rem)",
+          borderTop: "1px solid #e5e7eb",
+          textAlign: "center",
+          fontSize: "clamp(0.6rem, 1.2vw, 0.7rem)",
+          boxShadow: "0 -1px 3px rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        最終更新: {new Date(state.updatedAt).toLocaleString("ja-JP")}
+      </footer>
 
-    {/* レスポンシブCSS */}
-    <style>{`
+      {/* レスポンシブCSS */}
+      <style>{`
       .draft-grid-layout {
         display: grid;
         grid-template-rows: auto 1fr;
@@ -1208,6 +1160,20 @@ export default function DraftPage() {
         margin: 0 auto;
       }
 
+      .floating-box{
+        background: #f9fafbe2;
+        padding: clamp(0.6rem, 1.5vw, 1rem);
+        border-radius: 8px;
+        border: 1.5px solid #f59e0b;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        position: fixed;
+        top: 9vh;
+        left: 50%;
+        transform: translate(-50% , -50%);
+        z-index: 1;
+        }
+
       /* タブレット: 中画面（768px-1023px） */
       @media (min-width: 768px) and (max-width: 1023px) {
         .draft-grid-layout {
@@ -1218,6 +1184,12 @@ export default function DraftPage() {
             "teamA teamA"
             "teamB teamB";
         }
+
+        .floating-box {
+        top: auto;
+        bottom: 9vh;
+        transform: translateX(-50%);
+    }
       }
 
       /* タブレット: 小～中画面（1024px-1279px） */
@@ -1226,8 +1198,8 @@ export default function DraftPage() {
           grid-template-rows: auto 1fr;
           grid-template-columns: 1fr 1fr;
           grid-template-areas:
-            "center center"
-            "teamA teamB";
+          "teamA teamB"
+          "center center";
         }
       }
 
@@ -1241,8 +1213,14 @@ export default function DraftPage() {
             "teamA teamA"
             "teamB teamB";
         }
+
+        .floating-box {
+      top: auto;
+      bottom: 9vh;
+      transform: translateX(-50%);
+    }
       }
     `}</style>
-  </div>
-);
+    </div>
+  );
 }
