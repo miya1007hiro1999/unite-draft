@@ -4,7 +4,7 @@ const TURN_DURATION_SECONDS = 30
 
 interface UseTurnTimerOptions {
   currentTurn: number
-  phase: 'ban' | 'pick'
+  phase: 'ready' | 'ban' | 'pick'
   isAdmin: boolean
   onTimeout: () => void
 }
@@ -45,6 +45,12 @@ export function useTurnTimer({
   useEffect(() => {
     // admin 以外はタイマーを動かさない
     if (!isAdmin) {
+      return
+    }
+
+    // 'ready' フェーズ中はタイマーを動かさない
+    if (phase === 'ready') {
+      console.log(`[useTurnTimer] Timer paused: phase is 'ready'`)
       return
     }
 

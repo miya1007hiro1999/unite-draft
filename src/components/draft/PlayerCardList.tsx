@@ -15,7 +15,7 @@ interface PlayerCardListProps {
   banSequence: Team[]; // BAN順シーケンス（例: ['A', 'B', 'A', 'B', 'A', 'B']）
   pickSequence: Team[]; // PICK順シーケンス（例: ['A', 'B', 'B', 'A', 'A', 'B', 'B', 'A', 'A', 'B']）
   currentTurn: number; // 現在のターン（0-based）
-  phase: 'ban' | 'pick'; // 現在のフェーズ
+  phase: 'ready' | 'ban' | 'pick'; // 現在のフェーズ
   isBanCancellable?: boolean; // BAN削除可能かどうか
   onCancelBan?: (banIndex: number) => void; // BAN削除ハンドラー
 }

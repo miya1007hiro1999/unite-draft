@@ -24,7 +24,7 @@ import { getPokemonById } from "../data/pokemon";
 import { loadDraftState, saveDraftState } from "../lib/draftStorage";
 import type { Pokemon } from "../types/pokemon";
 import { useDraftRealtime } from "../hooks/useDraftRealtime";
-import { confirmPick, confirmBan, goToNextMatch } from "../lib/draftActions";
+import { confirmPick, confirmBan, goToNextMatch, startMatch } from "../lib/draftActions";
 
 // PendingBan型定義（ABABAB turn制用）
 type PendingBanState =
@@ -63,6 +63,13 @@ export default function DraftPage() {
   const [pendingBan, setPendingBan] = useState<PendingBanState>({
     type: "none",
   });
+
+  // 「次の試合へ進む」確認ポップアップ用
+  const [showNextMatchConfirm, setShowNextMatchConfirm] = useState(false);
+
+  // BAN/PICK 確定前の確認ステップ用
+  const [showPickConfirm, setShowPickConfirm] = useState(false);
+  const [showBanConfirm, setShowBanConfirm] = useState(false);
 
   // タイムアウト処理（admin のみ実行）
   const handleTimeout = useCallback(async () => {
@@ -464,6 +471,53 @@ export default function DraftPage() {
     });
   };
 
+  // 試合開始ハンドラー（'ready' → 'ban' フェーズへ遷移）
+  const handleStartMatch = async () => {
+    // 🔒 読み取り専用モードでは何もしない
+    if (isReadOnly) {
+      console.warn("[DraftPage] Read-only mode: Start match disabled");
+      return;
+    }
+
+    if (!state) return;
+
+    // 'ready' フェーズ以外では何もしない
+    if (state.phase !== "ready") {
+      console.warn("[DraftPage] Start match is only available during 'ready' phase");
+      return;
+    }
+
+    console.log("[DraftPage] Starting match...");
+
+    // Realtime モード: startMatch を使用
+    if (draftId) {
+      const success = await startMatch(draftId, state);
+      if (!success) {
+        console.error("[DraftPage] Failed to start match");
+      }
+      return;
+    }
+
+    // Legacy モード: setLegacyState を使用
+    setLegacyState((prevState) => {
+      if (!prevState) return prevState;
+
+      const newState: DraftState = {
+        ...prevState,
+        phase: "ban",
+        updatedAt: new Date().toISOString(),
+      };
+
+      console.log("[DraftPage] Match started, phase transitioned to 'ban'");
+
+      saveDraftState(newState).catch((error) => {
+        console.error("Failed to save draft state after starting match:", error);
+      });
+
+      return newState;
+    });
+  };
+
   // エラー表示
   if (error) {
     return (
@@ -685,96 +739,179 @@ export default function DraftPage() {
               !isReadOnly &&
               !matchComplete && (
                 <div className="floating-box">
-                  <div
-                    className="timer"
-                    style={{
-                      color: timeLeft <= 10 ? "#dc2626" : "#059669",
-                      fontSize: "clamp(1rem, 2vw, 1.25rem)",
-                      fontWeight: "bold",
-                      marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
-                    }}
-                  >
-                    残り {timeLeft} 秒
-                  </div>
-                  <div
-                    style={{
-                      color: "#d97706",
-                      marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
-                      fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ✓ 仮ピック: <strong>{pendingPick.name}</strong>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
-                      justifyContent: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <button
-                      onClick={handleConfirmPick}
-                      style={{
-                        background: "#10b981",
-                        color: "white",
-                        border: "none",
-                        padding:
-                          "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
-                        borderRadius: "6px",
-                        fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        transition: "all 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 6px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#059669";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 1px 3px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#10b981";
-                      }}
-                    >
-                      ✓ 確定
-                    </button>
-                    <button
-                      onClick={handleCancelPick}
-                      style={{
-                        background: "#ef4444",
-                        color: "white",
-                        border: "none",
-                        padding:
-                          "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
-                        borderRadius: "6px",
-                        fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                        transition: "all 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 6px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#dc2626";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 1px 3px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.background = "#ef4444";
-                      }}
-                    >
-                      ✕ キャンセル
-                    </button>
-                  </div>
+                  {/* 確認ステップ表示 */}
+                  {showPickConfirm ? (
+                    <>
+                      <div
+                        style={{
+                          color: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6",
+                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          fontSize: "clamp(0.85rem, 1.8vw, 1rem)",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        この内容で確定しますか？
+                      </div>
+                      <div
+                        style={{
+                          color: "#374151",
+                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
+                        }}
+                      >
+                        PICK: <strong style={{ color: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6" }}>{pendingPick.name}</strong>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <button
+                          onClick={() => setShowPickConfirm(false)}
+                          style={{
+                            background: "#6b7280",
+                            color: "white",
+                            border: "none",
+                            padding: "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#4b5563";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#6b7280";
+                          }}
+                        >
+                          戻る
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowPickConfirm(false);
+                            handleConfirmPick();
+                          }}
+                          style={{
+                            background: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6",
+                            color: "white",
+                            border: "none",
+                            padding: "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = currentPickingTeam === "A" ? "#ea580c" : "#7c3aed";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = currentPickingTeam === "A" ? "#f97316" : "#8b5cf6";
+                          }}
+                        >
+                          確定する
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    /* 通常状態：仮ピック表示 + 確定/キャンセルボタン */
+                    <>
+                      <div
+                        className="timer"
+                        style={{
+                          color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                          fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                          fontWeight: "bold",
+                          marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                        }}
+                      >
+                        残り {timeLeft} 秒
+                      </div>
+                      <div
+                        style={{
+                          color: "#d97706",
+                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓ 仮ピック: <strong>{pendingPick.name}</strong>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                          justifyContent: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <button
+                          onClick={() => setShowPickConfirm(true)}
+                          style={{
+                            background: "#10b981",
+                            color: "white",
+                            border: "none",
+                            padding:
+                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 6px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#059669";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow =
+                              "0 1px 3px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#10b981";
+                          }}
+                        >
+                          ✓ 確定
+                        </button>
+                        <button
+                          onClick={handleCancelPick}
+                          style={{
+                            background: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            padding:
+                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                            borderRadius: "6px",
+                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                            transition: "all 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 6px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#dc2626";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow =
+                              "0 1px 3px rgba(0, 0, 0, 0.1)";
+                            e.currentTarget.style.background = "#ef4444";
+                          }}
+                        >
+                          ✕ キャンセル
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -816,6 +953,154 @@ export default function DraftPage() {
                   </div>
                 </div>
               )}
+
+            {/* 試合開始確認ポップアップ（1試合目、readyフェーズのみ） */}
+            {state.phase === "ready" && state.currentMatch === 1 && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0, 0, 0, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 1000,
+                }}
+              >
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    padding: "clamp(1.5rem, 3vw, 2rem)",
+                    maxWidth: "500px",
+                    width: "90%",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                  }}
+                >
+                  <h2
+                    style={{
+                      margin: "0 0 1.5rem 0",
+                      fontSize: "clamp(1.2rem, 2.5vw, 1.5rem)",
+                      fontWeight: "bold",
+                      color: "#1f2937",
+                      textAlign: "center",
+                    }}
+                  >
+                    試合を開始していいですか？
+                  </h2>
+
+                  {/* URL表示（draftIdがある場合のみ） */}
+                  {draftId && (
+                    <div
+                      style={{
+                        background: "#f9fafb",
+                        borderRadius: "8px",
+                        padding: "1rem",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#6b7280",
+                            marginBottom: "0.25rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          観戦用URL
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#374151",
+                            background: "#ffffff",
+                            padding: "0.5rem",
+                            borderRadius: "4px",
+                            border: "1px solid #e5e7eb",
+                            wordBreak: "break-all",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {`${window.location.origin}/draft/${draftId}/view`}
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#6b7280",
+                            marginBottom: "0.25rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          運営用URL
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#374151",
+                            background: "#ffffff",
+                            padding: "0.5rem",
+                            borderRadius: "4px",
+                            border: "1px solid #e5e7eb",
+                            wordBreak: "break-all",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {`${window.location.origin}/draft/${draftId}/admin`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 開始ボタン（adminのみ表示） */}
+                  {!isReadOnly && (
+                    <button
+                      onClick={handleStartMatch}
+                      style={{
+                        width: "100%",
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        padding: "0.75rem 1.5rem",
+                        borderRadius: "8px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#059669";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                        e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#10b981";
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
+                      }}
+                    >
+                      開始する
+                    </button>
+                  )}
+
+                  {/* 観戦者向けメッセージ */}
+                  {isReadOnly && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        color: "#6b7280",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      運営が試合を開始するのをお待ちください...
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* BANフェーズ：pendingBan の状態に応じた UI */}
             {state.phase === "ban" &&
@@ -893,108 +1178,202 @@ export default function DraftPage() {
                   {/* pendingBan が pokemon または skip の場合：確定/キャンセルボタン */}
                   {pendingBan.type !== "none" && (
                     <div className="floating-box">
-                      <div
-                        className="timer"
-                        style={{
-                          color: timeLeft <= 10 ? "#dc2626" : "#059669",
-                          fontSize: "clamp(1rem, 2vw, 1.25rem)",
-                          fontWeight: "bold",
-                          marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
-                        }}
-                      >
-                        残り {timeLeft} 秒
-                      </div>
-                      <div
-                        style={{
-                          color: "#d97706",
-                          marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
-                          fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {pendingBan.type === "pokemon" ? (
-                          <>
-                            ✓ 仮BAN:{" "}
-                            <strong>
-                              {getPokemonById(pendingBan.pokemonId)?.name ??
-                                pendingBan.pokemonId}
-                            </strong>
-                          </>
-                        ) : (
-                          <>✓ BANスキップを選択</>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
-                          justifyContent: "center",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button
-                          onClick={handleConfirmBan}
-                          style={{
-                            background: "#10b981",
-                            color: "white",
-                            border: "none",
-                            padding:
-                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
-                            borderRadius: "6px",
-                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                            fontWeight: "bold",
-                            cursor: "pointer",
-                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                            transition: "all 0.3s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-1px)";
-                            e.currentTarget.style.boxShadow =
-                              "0 4px 6px rgba(0, 0, 0, 0.1)";
-                            e.currentTarget.style.background = "#059669";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow =
-                              "0 1px 3px rgba(0, 0, 0, 0.1)";
-                            e.currentTarget.style.background = "#10b981";
-                          }}
-                        >
-                          ✓ 確定
-                        </button>
-                        <button
-                          onClick={handleCancelBan}
-                          style={{
-                            background: "#ef4444",
-                            color: "white",
-                            border: "none",
-                            padding:
-                              "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
-                            borderRadius: "6px",
-                            fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
-                            fontWeight: "bold",
-                            cursor: "pointer",
-                            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                            transition: "all 0.3s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-1px)";
-                            e.currentTarget.style.boxShadow =
-                              "0 4px 6px rgba(0, 0, 0, 0.1)";
-                            e.currentTarget.style.background = "#dc2626";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow =
-                              "0 1px 3px rgba(0, 0, 0, 0.1)";
-                            e.currentTarget.style.background = "#ef4444";
-                          }}
-                        >
-                          ✕ キャンセル
-                        </button>
-                      </div>
+                      {/* 確認ステップ表示 */}
+                      {showBanConfirm ? (
+                        <>
+                          <div
+                            style={{
+                              color: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6",
+                              marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                              fontSize: "clamp(0.85rem, 1.8vw, 1rem)",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            この内容で確定しますか？
+                          </div>
+                          <div
+                            style={{
+                              color: "#374151",
+                              marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                              fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
+                            }}
+                          >
+                            {pendingBan.type === "pokemon" ? (
+                              <>
+                                BAN:{" "}
+                                <strong style={{ color: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6" }}>
+                                  {getPokemonById(pendingBan.pokemonId)?.name ?? pendingBan.pokemonId}
+                                </strong>
+                              </>
+                            ) : (
+                              <strong style={{ color: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6" }}>
+                                BANスキップ
+                              </strong>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <button
+                              onClick={() => setShowBanConfirm(false)}
+                              style={{
+                                background: "#6b7280",
+                                color: "white",
+                                border: "none",
+                                padding: "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                                borderRadius: "6px",
+                                fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                transition: "all 0.3s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "#4b5563";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "#6b7280";
+                              }}
+                            >
+                              戻る
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowBanConfirm(false);
+                                handleConfirmBan();
+                              }}
+                              style={{
+                                background: currentPickingTeam === "A" ? "#f97316" : "#8b5cf6",
+                                color: "white",
+                                border: "none",
+                                padding: "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                                borderRadius: "6px",
+                                fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                transition: "all 0.3s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = currentPickingTeam === "A" ? "#ea580c" : "#7c3aed";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = currentPickingTeam === "A" ? "#f97316" : "#8b5cf6";
+                              }}
+                            >
+                              確定する
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        /* 通常状態：仮BAN表示 + 確定/キャンセルボタン */
+                        <>
+                          <div
+                            className="timer"
+                            style={{
+                              color: timeLeft <= 10 ? "#dc2626" : "#059669",
+                              fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                              fontWeight: "bold",
+                              marginBottom: "clamp(0.3rem, 0.8vw, 0.5rem)",
+                            }}
+                          >
+                            残り {timeLeft} 秒
+                          </div>
+                          <div
+                            style={{
+                              color: "#d97706",
+                              marginBottom: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                              fontSize: "clamp(0.7rem, 1.5vw, 0.85rem)",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {pendingBan.type === "pokemon" ? (
+                              <>
+                                ✓ 仮BAN:{" "}
+                                <strong>
+                                  {getPokemonById(pendingBan.pokemonId)?.name ??
+                                    pendingBan.pokemonId}
+                                </strong>
+                              </>
+                            ) : (
+                              <>✓ BANスキップを選択</>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "clamp(0.5rem, 1.3vw, 0.75rem)",
+                              justifyContent: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <button
+                              onClick={() => setShowBanConfirm(true)}
+                              style={{
+                                background: "#10b981",
+                                color: "white",
+                                border: "none",
+                                padding:
+                                  "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                                borderRadius: "6px",
+                                fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                                transition: "all 0.3s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform =
+                                  "translateY(-1px)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 4px 6px rgba(0, 0, 0, 0.1)";
+                                e.currentTarget.style.background = "#059669";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 1px 3px rgba(0, 0, 0, 0.1)";
+                                e.currentTarget.style.background = "#10b981";
+                              }}
+                            >
+                              ✓ 確定
+                            </button>
+                            <button
+                              onClick={handleCancelBan}
+                              style={{
+                                background: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                padding:
+                                  "clamp(0.4rem, 1vw, 0.5rem) clamp(1rem, 2vw, 1.3rem)",
+                                borderRadius: "6px",
+                                fontSize: "clamp(0.7rem, 1.5vw, 0.8rem)",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                                transition: "all 0.3s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform =
+                                  "translateY(-1px)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 4px 6px rgba(0, 0, 0, 0.1)";
+                                e.currentTarget.style.background = "#dc2626";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 1px 3px rgba(0, 0, 0, 0.1)";
+                                e.currentTarget.style.background = "#ef4444";
+                              }}
+                            >
+                              ✕ キャンセル
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </>
@@ -1059,7 +1438,7 @@ export default function DraftPage() {
                     )}
                   </div>
                 ) : (
-                  // 試合終了：次の試合へ進むボタン
+                  // 試合終了：次の試合へ進むボタン（確認ポップアップを表示）
                   <div>
                     <h3
                       style={{
@@ -1072,7 +1451,7 @@ export default function DraftPage() {
                       試合 {state.currentMatch} / {maxMatches} 終了
                     </h3>
                     <button
-                      onClick={handleGoToNextMatch}
+                      onClick={() => setShowNextMatchConfirm(true)}
                       style={{
                         background: "#10b981",
                         color: "white",
@@ -1103,6 +1482,108 @@ export default function DraftPage() {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* 次の試合へ進む確認ポップアップ */}
+            {showNextMatchConfirm && !isReadOnly && matchComplete && !draftComplete && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0, 0, 0, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 1000,
+                }}
+              >
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    padding: "clamp(1.5rem, 3vw, 2rem)",
+                    maxWidth: "400px",
+                    width: "90%",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                    textAlign: "center",
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: "0 0 1rem 0",
+                      fontSize: "clamp(1rem, 2vw, 1.2rem)",
+                      fontWeight: "bold",
+                      color: "#1f2937",
+                    }}
+                  >
+                    本当に次の試合へ進みますか？
+                  </h3>
+                  <p
+                    style={{
+                      margin: "0 0 1.5rem 0",
+                      fontSize: "clamp(0.85rem, 1.5vw, 0.95rem)",
+                      color: "#6b7280",
+                    }}
+                  >
+                    試合 {state.currentMatch} → 試合 {state.currentMatch + 1} へ進みます
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowNextMatchConfirm(false)}
+                      style={{
+                        background: "#6b7280",
+                        color: "white",
+                        border: "none",
+                        padding: "0.6rem 1.5rem",
+                        borderRadius: "8px",
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#4b5563";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#6b7280";
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNextMatchConfirm(false);
+                        handleGoToNextMatch();
+                      }}
+                      style={{
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        padding: "0.6rem 1.5rem",
+                        borderRadius: "8px",
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#059669";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#10b981";
+                      }}
+                    >
+                      進む
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

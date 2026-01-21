@@ -249,3 +249,56 @@ export async function goToNextMatch(
     return false
   }
 }
+
+/**
+ * 試合を開始する（'ready' → 'ban' フェーズへ遷移）
+ *
+ * 動作:
+ * 1. phase が 'ready' の場合のみ実行可能
+ * 2. phase を 'ban' に変更
+ * 3. currentTurn は 0 のまま
+ * 4. drafts.state を UPDATE
+ *
+ * @param draftId - ドラフトID
+ * @param currentState - 現在のDraftState
+ */
+export async function startMatch(
+  draftId: string,
+  currentState: DraftState
+): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient()
+
+    const { currentMatch, phase } = currentState
+
+    // 'ready' フェーズ以外では実行不可
+    if (phase !== 'ready') {
+      console.warn(`[startMatch] Cannot start match: phase is '${phase}', expected 'ready'`)
+      return false
+    }
+
+    console.log('[startMatch] Starting match...', { currentMatch })
+
+    const updatedState: DraftState = {
+      ...currentState,
+      phase: 'ban',
+      updatedAt: new Date().toISOString(),
+    }
+
+    const { error: updateError } = await supabase
+      .from('drafts')
+      .update({ state: updatedState })
+      .eq('id', draftId)
+
+    if (updateError) {
+      console.error('[startMatch] Failed to update draft state:', updateError)
+      return false
+    }
+
+    console.log('[startMatch] Match started, phase transitioned to ban')
+    return true
+  } catch (error) {
+    console.error('[startMatch] Unexpected error:', error)
+    return false
+  }
+}

@@ -60,8 +60,8 @@ export function createInitialDraftState(data: SetupData): DraftState {
       maxMatches,
     },
     currentMatch: 1, // 第1試合から開始
-    currentTurn: 0, // BANフェーズ: 0-5, PICKフェーズ: 0-9
-    phase: 'ban', // BANフェーズから開始
+    currentTurn: 0, // BANフェーズ turn 0 から開始
+    phase: 'ready', // 試合開始確認待ち（adminが「開始する」を押すまで）
     globalBans: [], // グローバルBAN（廃止、互換性のため残す）
     globalBanConfirmed: true, // グローバルBAN（廃止、互換性のため残す）
     firstPickByMatch,
@@ -100,7 +100,7 @@ export function createMockDraftState(): DraftState {
     },
     currentMatch: 1, // 試合1から開始
     currentTurn: 0, // BANフェーズ turn 0 から開始
-    phase: 'ban', // BANフェーズから開始
+    phase: 'ready', // 試合開始確認待ち（adminが「開始する」を押すまで）
     globalBans: [],
     globalBanConfirmed: true,
     firstPickByMatch,

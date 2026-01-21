@@ -1,5 +1,5 @@
 export type Team = 'A' | 'B'
-export type Phase = 'ban' | 'pick'
+export type Phase = 'ready' | 'ban' | 'pick'
 
 // BANエントリ：pokemonId または null（スキップ）
 export type BanEntry = string | null

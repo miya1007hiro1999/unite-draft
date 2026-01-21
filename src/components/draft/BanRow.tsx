@@ -8,7 +8,7 @@ interface BanRowProps {
   team: Team // このチーム
   banSequence: Team[] // BAN順シーケンス（例: ['A', 'B', 'A', 'B', 'A', 'B']）
   currentTurn: number // 現在のターン（0-based）
-  phase: 'ban' | 'pick' // 現在のフェーズ
+  phase: 'ready' | 'ban' | 'pick' // 現在のフェーズ
   isCancellable?: boolean // 削除可能かどうか
   onCancelBan?: (banIndex: number) => void // 削除ハンドラー
 }
