@@ -28,9 +28,9 @@ export default function PokemonCard({
     <div
       onClick={onClick}
       style={{
-        width: '60px',
-        minWidth: '60px',
-        maxWidth: '60px',
+        width: '70px',
+        minWidth: '70px',
+        maxWidth: '70px',
         background: isBanned ? '#f3f4f6' : '#ffffff',
         borderRadius: '5px',
         // padding: 'clamp(0.2rem, 0.5vw, 0.35rem)',
